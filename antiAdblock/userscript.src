@@ -33,7 +33,7 @@
     // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
     // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
     // Disabled by default as most users have a mouse :)
-    const FULLSCREEN_RESTORATION = true;
+    const FULLSCREEN_RESTORATION = false;
 
     // #####################
     // #### CONFIG /end ####
