@@ -1,0 +1,11 @@
+It's a small userscript that I did to allow whitelisting Youtube/Twitch creators on adblockers
+The script reads the DOM to find the name of the create, then adds it in the URL as a "user" parameter
+
+Example on Youtube: https://youtu.bem/dQw4w9WgXcQ  
+It becomes https://www.youtube.com/watch?v=dQw4w9WgXcQ#user=RickastleyCoUkOfficial&fullscreen=0
+
+Whitelist example for UBlockOrigin:  
+twitch.tv/*user=qtgeekes
+twitch.tv/*user=rgotemtv
+youtube.com/*user=joueurdugrenier
+youtube.com/*user=QuestcequetuGEEKes
