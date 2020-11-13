@@ -1,0 +1,270 @@
+// ==UserScript==
+// @name        Youtube/Twitch channel inserter
+// @version     0.9.2
+// @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
+// @author      laplongejunior
+// @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
+// @grant       GM.setValue
+// @grant       GM.getValue
+// @match       *.youtube.com/*
+// @match       *.twitch.tv/*
+// ==/UserScript==
+
+// Original concept found on https://greasyfork.org/en/scripts/22308-youtube-whitelist-channels-in-ublock-origin
+// However, said script doesn't work anymore when I tested and I had to remake everything from scratch
+// In *theory* my parameters should be retro-comaptible with whitelist using said script, but I never tested
+// I also added partial Twitch support and a way to enable fullscren easily as I'm using it in remote desktop hooked to a huge screen
+
+// TOFIX:
+// It has only been tested on Chrome for now
+// The "fullscreen prompt" doesn't show up on Twitch... but can Twitch even perform video-to-video redirection during fullscreen?
+// Looks like it somehow picks the channel name from the previous page sometimes... often noticeable with results (probably the URL changes before the DOM gets cleaned up)
+
+(function(global) { // Neither window or global are explicitely used by this script, but I prefer having it
+	"use strict";
+
+    // #####################
+    // ### CONFIG /start ###
+    // #####################
+
+    // If TRUE, the script will pause the video and convert the channel ID into the channel name
+    // It makes the whitelist easier to maintain, but cause a small delay while during the conversion
+    const RESOLVE_IDS = true;
+    // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
+    // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
+    // Disabled by default as most users have a mouse :)
+    const FULLSCREEN_RESTORATION = false;
+
+    // #####################
+    // #### CONFIG /end ####
+    // #####################
+
+    // There are three auto-generated arguments
+    // ?user=CHANEL_NAME to be detected in an adblocker's whitelist
+    // &fullscreen=0/1 used to enabled easy fullscreening
+    // ?popup=origin (or nothing) only used when the script needs to open another page (and block this exact script from running)
+
+    // This script obviously doesn't need to run in a popup used for id resolving
+    const PARAM_RESOLVE = "origin=popup";
+    if (location.href.match('(?:[?&#])('+PARAM_RESOLVE+')') !== null) return;
+
+    // Fullscreen can only be initiated by a "user gesture"
+    // Create a HUGE area to invite to click/type, thn redirect that to the video's control bar
+    // It allows to trigger FS easily when from a small screen with remote desktop
+    const initFullscreen = element => {
+        // I won't comment this code, self-explanatory
+        const triggerArea = document.createElement("div");
+        for (const gesture of ["keypress","click"]) {
+            triggerArea.addEventListener(gesture, () => {
+                triggerArea.remove();
+                element.click();
+            });
+        }
+
+        const closeButton = document.createElement("span");
+        closeButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            triggerArea.remove();
+        });
+
+        const cStyle = closeButton.style;
+        cStyle.position="absolute";
+        cStyle.top = "0px";
+        cStyle.right = "0px";
+        cStyle.cursor = "pointer";
+
+        closeButton.appendChild(document.createTextNode('[X]'));
+        triggerArea.appendChild(closeButton);
+
+        triggerArea.appendChild(document.createTextNode('Press a button or click to restore fullscreen'));
+        triggerArea.appendChild(document.createElement("br"));
+
+        const input = document.createElement("input");
+        input.type = "text";
+        triggerArea.appendChild(input);
+
+        const tStyle = triggerArea.style;
+
+        tStyle.position = "fixed";
+        tStyle.left = "50%";
+        tStyle.transform = "translate(-50%,0)";
+        tStyle.width = "500px";
+        tStyle.height = "50px";
+        tStyle.bottom = "10px";
+        tStyle.backgroundColor = "red";
+        tStyle.textAlign = "center";
+        tStyle.fontSize = "15px";
+
+        document.body.appendChild(triggerArea);
+        // In my "remote phone" UX, focusing on a text field allows to simply input any key to restore FS
+        input.focus();
+    };
+
+    // Basically, calls callback once, then recalls it everytime there's a new node
+    // We use win instead of "window" because this function must also work with the data-resolution popup
+    const callFunctionAfterUpdates = (win, callback) => {
+        let pending = null;
+        const run = mutations => {
+            // No need to schedule several tries at the same time
+            if (pending !== null || !mutations.some(mutation => mutation.addedNodes)) return;
+            pending = setTimeout(() => {
+                pending = null;
+                callback();
+            }, 1000); // 1 second
+        }
+
+        new MutationObserver(run).observe(win.document.body, { childList: true, subtree: true });
+        // Make the callback believes it's an update
+        run([{addedNodes:true}]);
+    };
+
+    // All the code above was rather generic functions not really related to the business tasks
+    // NOW, the real script begins!
+
+    // The name to store in the script engine's cache
+    const VALUE_NAME = "channels";
+
+    // Youtube is inconsistent about showing the channel ID or channel name when watching a video
+    // However, no matter how a *channel* page is accessed, the search tab consistently shows the channel name if it exists
+    // Works with both "custom" channel links and "legacy" account names
+    // TODO : Find a new channel without a custom name... it *should* work as Youtube must provide search too, I guess.
+    // Two nitpicks here
+    // 1) Twitch has no concept of a link ID, but JUST IN CASE, "youtube" is passed as a parameter and saved to allow seperate storages
+    // 2) This method is called in two ways : a) by passing a popup, or b) by passing the global object when "normally" navigating a channel page
+    const readChannelFromDom = (platform, win, id) => {
+        // The "search" option in a channel page, next to the "video" tab
+        const link = win.document.querySelector('#form');
+        if (!link) return null;
+        let name = link.action.match("(?<="+location.hostname+"/).*(?=/search)")[0];
+        let index = name.indexOf('/');
+        if (index >= 0) name = name.substring(index+1);
+        if (RESOLVE_IDS && id && id.startsWith('UC')) GM.setValue( VALUE_NAME+"-"+platform+"-"+id, name );
+        return name;
+    }
+
+    // The Youtube API requires a (costly) key to obtain a channel's name "the easy way"
+    // But, as the channel page *can* provide it, we'll open the channel page when navigating a video
+    // When the name is obtained, it's passed as a parameter to the callback function
+    let popup = null;
+    const identifyChannel = (platform, url, callback) => {
+        // Avoids multi-triggering : if there's a popup currently resolving, no need to re-resolve
+        if (popup) return;
+        const id = url.match("/(user|channel|c)/(.+)")[2];
+        // Obviously, if the resolution is disabled, the callback is instantaneous :)
+        if (!RESOLVE_IDS || !id.startsWith('UC')) return callback(id);
+
+        // If we don't know the name yet...
+        const loadName = () => {
+            // ...we can open the channel window as a tab, but the change of navigation is even more annoying than opening a popup
+            // At least the popup will have the minimal size, and it only needs a few seconds to obtain the search URL
+            // Note: it only works because the popup is opened on the same domain! And we're already navigating on Youtube...
+            popup = open(url.substring(url.indexOf("/"))+"#"+PARAM_RESOLVE, "_blank", 'width=1,height=1');
+
+            // Once the popup is loaded, call an event and recall it after each added node
+            popup.addEventListener("load", () => callFunctionAfterUpdates(popup, () => {
+                // Search the name from the search URL, if found close the popup and "return" the value
+                const channel = readChannelFromDom(platform, popup.window, id);
+                if (!channel) return;
+                callback(channel);
+                popup.close();
+                popup = null;
+            }));
+        };
+
+        // Load the name from the cache, if it's found "return" it immediately
+        // Not in the cache, or broken cache? Look it by creating an annoying popup
+        GM.getValue(VALUE_NAME+"-"+platform+"-"+id).then(name => {
+            if (name) return callback(name);
+            loadName();
+        }).catch(loadName);
+    };
+
+    // clientSupport = does it allow to insert client-side arguments? (Twitch doesn't)
+    // fullscreenControl = what is the "fullscreen" button?
+    // user = patform-specific logic to extract the user ID from the content page
+    let platformMap = new Map();
+
+    platformMap.set(/\.youtube.com/,{
+        clientSupport:true
+        , fullscreenControl:()=>document.querySelector(".ytp-fullscreen-button")
+        , user:callback=>{
+            var PLATFORM = "youtube";
+            let name = location.href.match("/(user|channel|c)/(.+)");
+            name = readChannelFromDom(PLATFORM, window, name ? name[2] : null);
+            // Channel page
+            if (name) return callback(name);
+            // The query selector is so simple it catches unrelated channels during global searches
+            if (!location.pathname.substring(1).startsWith("watch")) return;
+            // Video page
+            const link = document.querySelector('.ytd-channel-name > div > yt-formatted-string > a');
+            if (link !== null) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
+        }
+    });
+
+    platformMap.set(/\.twitch.tv/,{clientSupport:false
+        , fullscreenControl:()=> document.querySelector("button[data-a-target=player-fullscreen-button]")
+        , user:callback => {
+            let link = document.querySelector('.channel-info-content > div > div > :not(.tw-border-b) > div > .tw-flex > div > div > a');
+            // Support for live from the channel page itself
+            if (link === null) {
+                link = document.querySelector('.channel-info-content > .home-header-sticky > .tw-align-items-center > .tw-full-width > .tw-align-self-center > a');
+                if (link === null) return;
+            }
+            callback(link.getAttribute("href").substring(1));
+        }
+    });
+
+    // Identify the platform
+    let config = null;
+    for (const [hostname,data] of platformMap) {
+        if (!location.hostname.match(hostname)) continue;
+        config = data;
+        break;
+    }
+    if (!config) return;
+
+    // If the platform supports client-side parameters, use them to avoid sending unnecessary data
+    const separator = (config.clientSupport ? '#':'?'), ADBLOCK_PARAM = "user", SCREEN_PARAM = "fullscreen";
+
+    // Detect if the fullscreen parameter is set
+    let param = location.href;
+    param = param.substring(param.indexOf(separator)+1).split("&").map(item => item.split("=")).find(pair => pair[0] === SCREEN_PARAM);
+    // If fullscreen is a value, the first time the target is available we must alter the size
+    let first = true, pendingScreen = (param && param[1] === '1');
+
+    // Where we do the bulk of the work
+    const userCheck = () => {
+        // If there's no parameter, create them
+        if (location.href.match('(?:[?&#])('+ADBLOCK_PARAM+'=(?:[^&]+|$))') === null) {
+            // We'll redirect, so at least avoid watching the same intro twice?
+            if (first) {
+                const video = document.querySelector("video");
+                if (video) {
+                    first = false;
+                    video.pause();
+                }
+            }
+
+            // Find the user, then "redirect" while adding it in a parameter
+            // From there, adblockers will be able to react to the URL
+            config.user(user => {
+                const param = (href,name,param) => {
+                    return href + ((href.indexOf(separator) == -1) ? separator : "&") + name+"="+encodeURIComponent(param);
+                };
+                let url = param(location.href, ADBLOCK_PARAM,user);
+                if (FULLSCREEN_RESTORATION) url = param(url, SCREEN_PARAM,document.fullscreenElement?'1':'0');
+                location.replace(url);
+            });
+        } else if (pendingScreen) {
+            // We need to retry until the video actually loaded
+            const target = config.fullscreenControl();
+            if (!target) return;
+            // Remember that we already tried to FS once, then attempt to FS
+            pendingScreen = false;
+            initFullscreen(target);
+        }
+    }
+
+	// If there's a DOM modification, schedule a new try
+    callFunctionAfterUpdates(global, userCheck);
+})(window);
