@@ -13,7 +13,7 @@
 // Original concept found on https://greasyfork.org/en/scripts/22308-youtube-whitelist-channels-in-ublock-origin
 // However, said script doesn't work anymore when I tested and I had to remake everything from scratch
 // In *theory* my parameters should be retro-comaptible with whitelist using said script, but I never tested
-// I also added partial Twitch support and a way to enable fullscren easily as I'm using it in remote desktop hooked to a huge screen
+// I also added partial Twitch support and a way to enable fullscreen easily as I'm using it in remote desktop hooked to a huge screen
 
 // TOFIX:
 // It has only been tested on Chrome for now
@@ -33,7 +33,7 @@
     // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
     // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
     // Disabled by default as most users have a mouse :)
-    const FULLSCREEN_RESTORATION = false;
+    const FULLSCREEN_RESTORATION = true;
 
     // #####################
     // #### CONFIG /end ####
@@ -54,11 +54,10 @@
     const initFullscreen = element => {
         // I won't comment this code, self-explanatory
         const triggerArea = document.createElement("div");
+        element.addEventListener("click", ()=>triggerArea.remove());
+
         for (const gesture of ["keypress","click"]) {
-            triggerArea.addEventListener(gesture, () => {
-                triggerArea.remove();
-                element.click();
-            });
+            triggerArea.addEventListener(gesture, ()=>element.click());
         }
 
         const closeButton = document.createElement("span");
@@ -127,7 +126,6 @@
     // Youtube is inconsistent about showing the channel ID or channel name when watching a video
     // However, no matter how a *channel* page is accessed, the search tab consistently shows the channel name if it exists
     // Works with both "custom" channel links and "legacy" account names
-    // TODO : Find a new channel without a custom name... it *should* work as Youtube must provide search too, I guess.
     // Two nitpicks here
     // 1) Twitch has no concept of a link ID, but JUST IN CASE, "youtube" is passed as a parameter and saved to allow seperate storages
     // 2) This method is called in two ways : a) by passing a popup, or b) by passing the global object when "normally" navigating a channel page
