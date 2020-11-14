@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name        Youtube/Twitch channel inserter
-// @version     0.9.2
+// @version     0.9.3
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
-// @license     https://www.gnu.org/licenses/agpl-3.0.txt
+// @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
 // @grant       GM.setValue
 // @grant       GM.getValue
 // @match       *.youtube.com/*
@@ -27,13 +27,26 @@
     // ### CONFIG /start ###
     // #####################
 
-    // If TRUE, the script will pause the video and convert the channel ID into the channel name
-    // It makes the whitelist easier to maintain, but cause a small delay while during the conversion
+    // If TRUE, the script convert youtube's channel ID into the channel name
+    // It makes the whitelist easier to maintain, but will cause a small delay during the conversion
+    // Conversion is done by opening a popup to the channel's page when on an video from an unknown creator
+    // The result is put into a cache, which will be updated if the channel page is opened manually later
     const RESOLVE_IDS = true;
     // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
     // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
     // Disabled by default as most users have a mouse :)
     const FULLSCREEN_RESTORATION = false;
+
+    // If, for whatever reason, you don't want to add urls to your adblock
+    // You can add channel names in this list
+    // That'll add an extra "&whitelisted=1" parameter instead of the user channel
+    const HARDCODED_WHITELIST = [];
+    // If TRUE, the script won't modify the URL for channels outside the hardcoded whitelist
+    // (Corollary: this setting has no effect if HARDCODED_WHITELIST is empty)
+    // + : avoids reloading non-whitelisted channels
+    // - : impossible to use the adblock whitelist
+    // The user parameter will be omited and the video won't auto-pause before the eventual redirection
+    const NO_DEFAULT_REDIRECT = false;
 
     // #####################
     // #### CONFIG /end ####
@@ -214,6 +227,7 @@
 
     // Identify the platform
     let config = null;
+    // TODO: There *must* be a simpler way to do that
     for (const [hostname,data] of platformMap) {
         if (!location.hostname.match(hostname)) continue;
         config = data;
@@ -222,23 +236,35 @@
     if (!config) return;
 
     // If the platform supports client-side parameters, use them to avoid sending unnecessary data
-    const separator = (config.clientSupport ? '#':'?'), ADBLOCK_PARAM = "user", SCREEN_PARAM = "fullscreen";
+    const separator = (config.clientSupport ? '#':'?'), ADBLOCK_PARAM = "user", SCREEN_PARAM = "fullscreen", HARDCODED_PARAM = "whitelisted";
 
     // Detect if the fullscreen parameter is set
     let param = location.href;
     param = param.substring(param.indexOf(separator)+1).split("&").map(item => item.split("=")).find(pair => pair[0] === SCREEN_PARAM);
+    // If the video is meant to be reloaded, first view should be paused
+    let pauseVideo = !NO_DEFAULT_REDIRECT;
     // If fullscreen is a value, the first time the target is available we must alter the size
-    let first = true, pendingScreen = (param && param[1] === '1');
+    let pendingScreen = (param && param[1] === '1');
 
     // Where we do the bulk of the work
     const userCheck = () => {
+        let hasParameter = false;
+        // TODO: There *must* be a simpler way to do that
+        for (let name of [ADBLOCK_PARAM,HARDCODED_PARAM]) {
+            // TODO: Change the regex to check both params without using a loop
+            // It'll work for now
+            if (location.href.match('(?:[?&#])('+name+'=(?:[^&]+|$))') === null) continue;
+            hasParameter = true;
+            break;
+        }
+
         // If there's no parameter, create them
-        if (location.href.match('(?:[?&#])('+ADBLOCK_PARAM+'=(?:[^&]+|$))') === null) {
+        if (!hasParameter) {
             // We'll redirect, so at least avoid watching the same intro twice?
-            if (first) {
+            if (pauseVideo) {
                 const video = document.querySelector("video");
                 if (video) {
-                    first = false;
+                    pauseVideo = false;
                     video.pause();
                 }
             }
@@ -249,8 +275,17 @@
                 const param = (href,name,param) => {
                     return href + ((href.indexOf(separator) == -1) ? separator : "&") + name+"="+encodeURIComponent(param);
                 };
-                let url = param(location.href, ADBLOCK_PARAM,user);
-                if (FULLSCREEN_RESTORATION) url = param(url, SCREEN_PARAM,document.fullscreenElement?'1':'0');
+                let url = location.href;
+
+                // If there's a whitelist, add the parameter in the URL
+                if (HARDCODED_WHITELIST.length != 0) {
+                    const whitelisted = HARDCODED_WHITELIST.includes(user);
+                    if (NO_DEFAULT_REDIRECT && !whitelisted) return;
+                    url = param(url, HARDCODED_PARAM,whitelisted?"1":"0");
+                }
+
+                if (!NO_DEFAULT_REDIRECT) url = param(url, ADBLOCK_PARAM, user);
+                if (FULLSCREEN_RESTORATION) url = param(url, SCREEN_PARAM, document.fullscreenElement?'1':'0');
                 location.replace(url);
             });
         } else if (pendingScreen) {
