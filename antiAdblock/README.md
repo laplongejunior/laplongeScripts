@@ -8,5 +8,7 @@ https://youtu.be/dQw4w9WgXcQ => https://www.youtube.com/watch?v=dQw4w9WgXcQ#user
 Whitelist example for UBlockOrigin:  
 twitch.tv/*user=qtgeekes  
 twitch.tv/*user=rgotemtv  
+twitch.tv/*whitelisted=1
 youtube.com/*user=joueurdugrenier  
 youtube.com/*user=QuestcequetuGEEKes  
+youtube.com/*whitelisted=1
