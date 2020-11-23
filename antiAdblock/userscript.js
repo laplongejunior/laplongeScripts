@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name        Youtube/Twitch channel inserter
-// @version     0.9.3
+// @version     0.9.4
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
+// @match       *://*.youtube.com/*
+// @match       *://*.twitch.tv/*
 // @grant       GM.setValue
 // @grant       GM.getValue
-// @match       *.youtube.com/*
-// @match       *.twitch.tv/*
+// @run-at      document-end
 // ==/UserScript==
 
 // Original concept found on https://greasyfork.org/en/scripts/22308-youtube-whitelist-channels-in-ublock-origin
@@ -16,9 +17,8 @@
 // I also added partial Twitch support and a way to enable fullscreen easily as I'm using it in remote desktop hooked to a huge screen
 
 // TOFIX:
-// It has only been tested on Chrome for now
 // The "fullscreen prompt" doesn't show up on Twitch... but can Twitch even perform video-to-video redirection during fullscreen?
-// Looks like it somehow picks the channel name from the previous page sometimes... often noticeable with results (probably the URL changes before the DOM gets cleaned up)
+// Looks like it somehow picks the channel name from the previous Youtube page sometimes... often noticeable with results (probably the URL changes before the DOM gets cleaned up)
 
 (function(global) { // Neither window or global are explicitely used by this script, but I prefer having it
 	"use strict";
@@ -40,6 +40,7 @@
     // If, for whatever reason, you don't want to add urls to your adblock
     // You can add channel names in this list
     // That'll add an extra "&whitelisted=1" parameter instead of the user channel
+    // A default list *may* be useful if some channel's *purpose* is having ads (i dunno, may a only-ad video for helping charities?)
     const HARDCODED_WHITELIST = [];
     // If TRUE, the script won't modify the URL for channels outside the hardcoded whitelist
     // (Corollary: this setting has no effect if HARDCODED_WHITELIST is empty)
@@ -68,10 +69,7 @@
         // I won't comment this code, self-explanatory
         const triggerArea = document.createElement("div");
         element.addEventListener("click", ()=>triggerArea.remove());
-
-        for (const gesture of ["keypress","click"]) {
-            triggerArea.addEventListener(gesture, ()=>element.click());
-        }
+        ["keypress","click"].forEach(gesture => triggerArea.addEventListener(gesture, ()=>element.click()));
 
         const closeButton = document.createElement("span");
         closeButton.addEventListener("click", (event) => {
@@ -130,6 +128,14 @@
         run([{addedNodes:true}]);
     };
 
+    // Polyfill
+    global.Map.prototype.find = function(filter, _this) {
+        for (const [key,data] of this) {
+            if (filter.call(_this,key,data,this)) return data;
+        }
+        return undefined;
+    };
+
     // All the code above was rather generic functions not really related to the business tasks
     // NOW, the real script begins!
 
@@ -156,10 +162,10 @@
     // The Youtube API requires a (costly) key to obtain a channel's name "the easy way"
     // But, as the channel page *can* provide it, we'll open the channel page when navigating a video
     // When the name is obtained, it's passed as a parameter to the callback function
-    let popup = null;
+    let popup = undefined;
     const identifyChannel = (platform, url, callback) => {
         // Avoids multi-triggering : if there's a popup currently resolving, no need to re-resolve
-        if (popup) return;
+        if (popup !== undefined) return;
         const id = url.match("/(user|channel|c)/(.+)")[2];
         // Obviously, if the resolution is disabled, the callback is instantaneous :)
         if (!RESOLVE_IDS || !id.startsWith('UC')) return callback(id);
@@ -169,17 +175,24 @@
             // ...we can open the channel window as a tab, but the change of navigation is even more annoying than opening a popup
             // At least the popup will have the minimal size, and it only needs a few seconds to obtain the search URL
             // Note: it only works because the popup is opened on the same domain! And we're already navigating on Youtube...
-            popup = open(url.substring(url.indexOf("/"))+"#"+PARAM_RESOLVE, "_blank", 'width=1,height=1');
-
-            // Once the popup is loaded, call an event and recall it after each added node
-            popup.addEventListener("load", () => callFunctionAfterUpdates(popup, () => {
+          const destination = url.substring(url.indexOf("/"));
+            popup = global.open(destination+"#"+PARAM_RESOLVE, "_blank", 'width=1,height=1');
+            // If popups aren't allowed, try with a tab
+            if (popup === null) {
+              console.error("Unable to open popup to detect YT channel's name! Please, open a new tab to go to "+destination);
+              setTimeout(()=>{popup=undefined},10000);
+            }
+            else {
+              // Once the popup is loaded, call an event and recall it after each added node
+              popup.addEventListener("load", () => callFunctionAfterUpdates(popup, () => {
                 // Search the name from the search URL, if found close the popup and "return" the value
                 const channel = readChannelFromDom(platform, popup.window, id);
                 if (!channel) return;
                 callback(channel);
                 popup.close();
                 popup = null;
-            }));
+              }));
+            }
         };
 
         // Load the name from the cache, if it's found "return" it immediately
@@ -225,14 +238,7 @@
         }
     });
 
-    // Identify the platform
-    let config = null;
-    // TODO: There *must* be a simpler way to do that
-    for (const [hostname,data] of platformMap) {
-        if (!location.hostname.match(hostname)) continue;
-        config = data;
-        break;
-    }
+    let config = platformMap.find(hostname=>location.hostname.match(hostname));
     if (!config) return;
 
     // If the platform supports client-side parameters, use them to avoid sending unnecessary data
@@ -248,18 +254,8 @@
 
     // Where we do the bulk of the work
     const userCheck = () => {
-        let hasParameter = false;
-        // TODO: There *must* be a simpler way to do that
-        for (let name of [ADBLOCK_PARAM,HARDCODED_PARAM]) {
-            // TODO: Change the regex to check both params without using a loop
-            // It'll work for now
-            if (location.href.match('(?:[?&#])('+name+'=(?:[^&]+|$))') === null) continue;
-            hasParameter = true;
-            break;
-        }
-
         // If there's no parameter, create them
-        if (!hasParameter) {
+        if ([ADBLOCK_PARAM,HARDCODED_PARAM].find(name=>location.href.match('(?:[?&#])('+name+'=(?:[^&]+|$))') !== null) === undefined) {
             // We'll redirect, so at least avoid watching the same intro twice?
             if (pauseVideo) {
                 const video = document.querySelector("video");
@@ -300,4 +296,4 @@
 
 	// If there's a DOM modification, schedule a new try
     callFunctionAfterUpdates(global, userCheck);
-})(window);
+})(/*unsafeWindow||*/this);
