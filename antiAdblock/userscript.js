@@ -39,7 +39,7 @@
 
     // If, for whatever reason, you don't want to add urls to your adblock
     // You can add channel names in this list
-    // That'll add an extra "&whitelisted=1" parameter instead of the user channel
+    // That'll add an extra "&whitelisted=1" parameter along the user channel
     // A default list *may* be useful if some channel's *purpose* is having ads (i dunno, may a only-ad video for helping charities?)
     const HARDCODED_WHITELIST = [];
     // If TRUE, the script won't modify the URL for channels outside the hardcoded whitelist
