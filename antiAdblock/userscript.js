@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Youtube/Twitch channel inserter
-// @version     0.9.4
+// @version     1.0
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -18,9 +18,8 @@
 
 // TOFIX:
 // The "fullscreen prompt" doesn't show up on Twitch... but can Twitch even perform video-to-video redirection during fullscreen?
-// Looks like it somehow picks the channel name from the previous Youtube page sometimes... often noticeable with results (probably the URL changes before the DOM gets cleaned up)
 
-(function(global) { // Neither window or global are explicitely used by this script, but I prefer having it
+(function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 	"use strict";
 
     // #####################
@@ -40,7 +39,7 @@
     // If, for whatever reason, you don't want to add urls to your adblock
     // You can add channel names in this list
     // That'll add an extra "&whitelisted=1" parameter along the user channel
-    // A default list *may* be useful if some channel's *purpose* is having ads (i dunno, may a only-ad video for helping charities?)
+    // A default list *may* be useful if some channel's *purpose* is having ads (i dunno, maybe a only-ad channel for helping charities?)
     const HARDCODED_WHITELIST = [];
     // If TRUE, the script won't modify the URL for channels outside the hardcoded whitelist
     // (Corollary: this setting has no effect if HARDCODED_WHITELIST is empty)
@@ -135,6 +134,29 @@
         }
         return undefined;
     };
+  
+    // By default, querySelector returns the first element in case of multiple matches
+    // querySelector should only be used for cases intended for a single match
+    // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
+    // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
+    const _querySelectorAll = HTMLDocument.prototype.querySelectorAll
+    HTMLDocument.prototype.querySelector = function() {
+      const result = _querySelectorAll.apply(this, arguments);
+      if (result.length == 1) return result.item(0);
+      if (result.length > 1) {
+        console.warn("Several matches found for querySelector! Discarding...");
+        console.warn(result);
+      }
+      return null;      
+    };
+  
+    const URLcontainsParam = (url, ...names) => {
+      let params = "";
+      for (const name of names) {
+        params += "|" + name;
+      }
+      return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
+    }
 
     // All the code above was rather generic functions not really related to the business tasks
     // NOW, the real script begins!
@@ -220,7 +242,7 @@
             // The query selector is so simple it catches unrelated channels during global searches
             if (!location.pathname.substring(1).startsWith("watch")) return;
             // Video page
-            const link = document.querySelector('.ytd-channel-name > div > yt-formatted-string > a');
+            const link = document.querySelector('.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
             if (link !== null) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
         }
     });
@@ -253,38 +275,17 @@
     let pendingScreen = (param && param[1] === '1');
 
     // Where we do the bulk of the work
-    const userCheck = () => {
-        // If there's no parameter, create them
-        if ([ADBLOCK_PARAM,HARDCODED_PARAM].find(name=>location.href.match('(?:[?&#])('+name+'=(?:[^&]+|$))') !== null) === undefined) {
-            // We'll redirect, so at least avoid watching the same intro twice?
-            if (pauseVideo) {
-                const video = document.querySelector("video");
-                if (video) {
-                    pauseVideo = false;
-                    video.pause();
-                }
+    const userCheck = () => {      
+        // We'll redirect, so at least avoid watching the same intro twice?
+        if (pauseVideo) {
+            const video = document.querySelector("video");
+            if (video) {
+                pauseVideo = false;
+                video.pause();
             }
-
-            // Find the user, then "redirect" while adding it in a parameter
-            // From there, adblockers will be able to react to the URL
-            config.user(user => {
-                const param = (href,name,param) => {
-                    return href + ((href.indexOf(separator) == -1) ? separator : "&") + name+"="+encodeURIComponent(param);
-                };
-                let url = location.href;
-
-                // If there's a whitelist, add the parameter in the URL
-                if (HARDCODED_WHITELIST.length != 0) {
-                    const whitelisted = HARDCODED_WHITELIST.includes(user);
-                    if (NO_DEFAULT_REDIRECT && !whitelisted) return;
-                    url = param(url, HARDCODED_PARAM,whitelisted?"1":"0");
-                }
-
-                if (!NO_DEFAULT_REDIRECT) url = param(url, ADBLOCK_PARAM, user);
-                if (FULLSCREEN_RESTORATION) url = param(url, SCREEN_PARAM, document.fullscreenElement?'1':'0');
-                location.replace(url);
-            });
-        } else if (pendingScreen) {
+        }
+      
+        if (pendingScreen) {
             // We need to retry until the video actually loaded
             const target = config.fullscreenControl();
             if (!target) return;
@@ -292,6 +293,48 @@
             pendingScreen = false;
             initFullscreen(target);
         }
+
+        // If no params, create them      
+        let name = URLcontainsParam(location.href, ADBLOCK_PARAM,HARDCODED_PARAM);
+        if (name) {
+          // We currently don't use the previous parameter
+          //name = name[name.length-1];
+          return;
+        }
+      
+        // Find the user, then "redirect" while adding it in a parameter
+        // From there, adblockers will be able to react to the URL
+        config.user(user => {
+            const param = (href,name,param) => {
+               // No need to append in current version
+               /*
+               let before, after;               
+               const match = URLcontainsParam(href, name);
+               if (match) {
+                  const start = match.index;
+                  before = href.substring(0,start);                  
+                  after = href.substring(start+name.length+2+match[match.length-1].length);
+               } else {
+                  before = href;
+                  after = "";
+               }
+               */
+               const before = href, after = "";
+               return before + ((before.indexOf(separator) == -1) ? separator : "&") + name+"="+encodeURIComponent(param) + after;
+            };
+            let url = location.href;
+
+            // If there's a whitelist, add the parameter in the URL
+            if (HARDCODED_WHITELIST.length != 0) {
+                const whitelisted = HARDCODED_WHITELIST.includes(user);
+                if (NO_DEFAULT_REDIRECT && !whitelisted) return;
+                url = param(url, HARDCODED_PARAM,whitelisted?"1":"0");
+            }
+
+            if (!NO_DEFAULT_REDIRECT) url = param(url, ADBLOCK_PARAM, user);
+            if (FULLSCREEN_RESTORATION) url = param(url, SCREEN_PARAM, document.fullscreenElement?'1':'0');
+            location.replace(url);
+        });
     }
 
 	// If there's a DOM modification, schedule a new try
