@@ -26,6 +26,33 @@
     // ### CONFIG /start ###
     // #####################
 
+    // If TRUE, the script convert youtube's channel ID into the channel name
+
+    // It makes the whitelist easier to maintain, but will cause a small delay during the conversion
+    // Conversion is done by opening a popup to the channel's page when on an video from an unknown creator
+    // The result is put into a cache, which will be updated if the channel page is opened manually later
+    const RESOLVE_IDS = true;
+    // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
+    // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
+    // Disabled by default as most users have a mouse :)
+    const FULLSCREEN_RESTORATION = false;
+
+    // If, for whatever reason, you don't want to add urls to your adblock
+    // You can add channel names in this list
+    // That'll add an extra "&whitelisted=1" parameter along the user channel
+    // A default list *may* be useful if some channel's *purpose* is having ads (i dunno, maybe a only-ad channel for helping charities?)
+    const HARDCODED_WHITELIST = [];
+    // If TRUE, the script won't modify the URL for channels outside the hardcoded whitelist
+    // (Corollary: this setting has no effect if HARDCODED_WHITELIST is empty)
+    // + : avoids reloading non-whitelisted channels
+    // - : impossible to use the adblock whitelist
+    // The user parameter will be omited and the video won't auto-pause before the eventual redirection
+    const NO_DEFAULT_REDIRECT = false;
+
+    // #####################
+    // #### CONFIG /end ####
+    // #####################
+
   
 
     // There are three auto-generated arguments
