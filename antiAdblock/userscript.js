@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Youtube/Twitch channel inserter
-// @version     1.0
+// @version     1.1
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -26,31 +26,7 @@
     // ### CONFIG /start ###
     // #####################
 
-    // If TRUE, the script convert youtube's channel ID into the channel name
-    // It makes the whitelist easier to maintain, but will cause a small delay during the conversion
-    // Conversion is done by opening a popup to the channel's page when on an video from an unknown creator
-    // The result is put into a cache, which will be updated if the channel page is opened manually later
-    const RESOLVE_IDS = true;
-    // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
-    // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
-    // Disabled by default as most users have a mouse :)
-    const FULLSCREEN_RESTORATION = false;
-
-    // If, for whatever reason, you don't want to add urls to your adblock
-    // You can add channel names in this list
-    // That'll add an extra "&whitelisted=1" parameter along the user channel
-    // A default list *may* be useful if some channel's *purpose* is having ads (i dunno, maybe a only-ad channel for helping charities?)
-    const HARDCODED_WHITELIST = [];
-    // If TRUE, the script won't modify the URL for channels outside the hardcoded whitelist
-    // (Corollary: this setting has no effect if HARDCODED_WHITELIST is empty)
-    // + : avoids reloading non-whitelisted channels
-    // - : impossible to use the adblock whitelist
-    // The user parameter will be omited and the video won't auto-pause before the eventual redirection
-    const NO_DEFAULT_REDIRECT = false;
-
-    // #####################
-    // #### CONFIG /end ####
-    // #####################
+  
 
     // There are three auto-generated arguments
     // ?user=CHANEL_NAME to be detected in an adblocker's whitelist
@@ -121,8 +97,10 @@
                 callback();
             }, 1000); // 1 second
         }
+        
+        
 
-        new MutationObserver(run).observe(win.document.body, { childList: true, subtree: true });
+        new MutationObserver(run).observe(win.document || win.document.body, { childList: true, subtree: true });
         // Make the callback believes it's an update
         run([{addedNodes:true}]);
     };
@@ -140,8 +118,8 @@
     // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
     // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
     const _querySelectorAll = HTMLDocument.prototype.querySelectorAll
-    HTMLDocument.prototype.querySelector = function() {
-      const result = _querySelectorAll.apply(this, arguments);
+    const querySelectorSafe = function(doc, selector) {
+      const result = _querySelectorAll.call(doc, selector);
       if (result.length == 1) return result.item(0);
       if (result.length > 1) {
         console.warn("Several matches found for querySelector! Discarding...");
@@ -171,12 +149,31 @@
     // 1) Twitch has no concept of a link ID, but JUST IN CASE, "youtube" is passed as a parameter and saved to allow seperate storages
     // 2) This method is called in two ways : a) by passing a popup, or b) by passing the global object when "normally" navigating a channel page
     const readChannelFromDom = (platform, win, id) => {
+        const doc = win.document;
+        let name = undefined;
+      
         // The "search" option in a channel page, next to the "video" tab
-        const link = win.document.querySelector('#form');
-        if (!link) return null;
-        let name = link.action.match("(?<="+location.hostname+"/).*(?=/search)")[0];
-        let index = name.indexOf('/');
-        if (index >= 0) name = name.substring(index+1);
+        let link = querySelectorSafe(doc,'#form');
+        if (link) {
+          name = link.action.match("(?<="+location.hostname+"/).*(?=/search)")[0];
+          const index = name.indexOf('/');
+          if (index >= 0) name = name.substring(index+1);
+        }
+        else {
+            // Some kid channels lack a search button...
+            // https://www.youtube.com/watch?v=xooqiT-tm-4 => https://www.youtube.com/channel/UCTbN5fQiw9LJbLhkjGgXb2w
+            link = querySelectorSafe(doc,'#meta > #channel-name > div > div > #text');
+            if (!link) return null;
+            link = link.textContent;
+
+            for (const element of Array.from(doc.querySelectorAll('.yt-formatted-string')).filter(n=>n.textContent===link)) {
+              const href = element.href;
+              if (!href) continue;
+              name = href.substring(href.lastIndexOf('/')+1);
+              if (!name.startsWith('UC')) break;
+            }
+            if (!name) return null;
+        }
         if (RESOLVE_IDS && id && id.startsWith('UC')) GM.setValue( VALUE_NAME+"-"+platform+"-"+id, name );
         return name;
     }
@@ -232,7 +229,7 @@
 
     platformMap.set(/\.youtube.com/,{
         clientSupport:true
-        , fullscreenControl:()=>document.querySelector(".ytp-fullscreen-button")
+        , fullscreenControl:()=>querySelectorSafe(document,".ytp-fullscreen-button")
         , user:callback=>{
             var PLATFORM = "youtube";
             let name = location.href.match("/(user|channel|c)/(.+)");
@@ -242,18 +239,18 @@
             // The query selector is so simple it catches unrelated channels during global searches
             if (!location.pathname.substring(1).startsWith("watch")) return;
             // Video page
-            const link = document.querySelector('.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
+            const link = querySelectorSafe(document,'.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
             if (link !== null) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
         }
     });
 
     platformMap.set(/\.twitch.tv/,{clientSupport:false
-        , fullscreenControl:()=> document.querySelector("button[data-a-target=player-fullscreen-button]")
+        , fullscreenControl:()=> querySelectorSafe(document,"button[data-a-target=player-fullscreen-button]")
         , user:callback => {
-            let link = document.querySelector('.channel-info-content > div > div > :not(.tw-border-b) > div > .tw-flex > div > div > a');
+            let link = querySelectorSafe(document,'.channel-info-content > div > div > :not(.tw-border-b) > div > .tw-flex > div > div > a');
             // Support for live from the channel page itself
             if (link === null) {
-                link = document.querySelector('.channel-info-content > .home-header-sticky > .tw-align-items-center > .tw-full-width > .tw-align-self-center > a');
+                link = querySelectorSafe(document,'.channel-info-content > .home-header-sticky > .tw-align-items-center > .tw-full-width > .tw-align-self-center > a');
                 if (link === null) return;
             }
             callback(link.getAttribute("href").substring(1));
@@ -278,7 +275,7 @@
     const userCheck = () => {      
         // We'll redirect, so at least avoid watching the same intro twice?
         if (pauseVideo) {
-            const video = document.querySelector("video");
+            const video = querySelectorSafe(document,"video");
             if (video) {
                 pauseVideo = false;
                 video.pause();
