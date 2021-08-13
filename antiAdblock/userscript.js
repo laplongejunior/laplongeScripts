@@ -277,8 +277,8 @@
             let link = querySelectorSafe(document,'.channel-info-content > div > div > :not(.tw-border-b) > div > .tw-flex > div > div > a');
             // Support for live from the channel page itself
             if (link === null) {
-                link = querySelectorSafe(document,'.channel-info-content > .home-header-sticky > .tw-align-items-center > .tw-full-width > .tw-align-self-center > a');
-                if (link === null) return;
+                link = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild?.firstChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
+                if (!link) return;
             }
             callback(link.getAttribute("href").substring(1));
         }
@@ -363,4 +363,4 @@
 
 	// If there's a DOM modification, schedule a new try
     callFunctionAfterUpdates(global, userCheck);
-})(/*unsafeWindow||*/this);
+})(unsafeWindow||this);
