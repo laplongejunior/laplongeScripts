@@ -274,8 +274,9 @@
     platformMap.set(/\.twitch.tv/,{clientSupport:false
         , fullscreenControl:()=> querySelectorSafe(document,"button[data-a-target=player-fullscreen-button]")
         , user:callback=>{
-            let base = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild?;
+            let base = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild;
             if (!base) return;
+          
             let link = base.lastChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
             // Support for live from the channel page itself
             if (!link) {
