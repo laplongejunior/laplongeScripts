@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Youtube/Twitch channel inserter
-// @version     1.1
+// @version     1.1.1
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
