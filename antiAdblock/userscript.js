@@ -267,17 +267,19 @@
             if (!location.pathname.substring(1).startsWith("watch")) return;
             // Video page
             const link = querySelectorSafe(document,'.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
-            if (link !== null) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
+            if (link) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
         }
     });
 
     platformMap.set(/\.twitch.tv/,{clientSupport:false
         , fullscreenControl:()=> querySelectorSafe(document,"button[data-a-target=player-fullscreen-button]")
-        , user:callback => {
-            let link = querySelectorSafe(document,'.channel-info-content > div > div > :not(.tw-border-b) > div > .tw-flex > div > div > a');
+        , user:callback=>{
+            let base = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild?;
+            if (!base) return;
+            let link = base.lastChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
             // Support for live from the channel page itself
-            if (link === null) {
-                link = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild?.firstChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
+            if (!link) {
+                link = base.firstChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
                 if (!link) return;
             }
             callback(link.getAttribute("href").substring(1));
