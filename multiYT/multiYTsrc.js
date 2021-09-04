@@ -1,4 +1,4 @@
-// Call multiYT_schedulePlayer with an existing dom node, an array of array representing the video fragments and a boolean on true if the video must start now
+	// Call multiYT_schedulePlayer with an existing dom node, an array of array representing the video fragments and a boolean on true if the video must start now
 // This script will create two YT players and will hide/show the secondary one when needed
 // That allows to show several fragments of videos in sequence as the other viewer pre-buffered the following fragment
 // Content of the fragment array : 
@@ -37,12 +37,12 @@
 			const id = PREFIX+(++lastID);
 			
 			// To avoid flickering, we'll initially load the YT player in an hidden element
-			var mask = document.createElement('span');
+			var mask = document.createElement("span");
 			container.appendChild(mask);
 			mask.style.display = 'none';
 			
 			// Youtube will automatically replace this div by their iframe player
-			var player = document.createElement('div');
+			var player = document.createElement("div");
 			player.id = id;
 			mask.appendChild(player);
 			
@@ -63,7 +63,7 @@
 		const initMulti = function(autoPlay) {
 			var params = schedule.shift();
 			const player = players[nextID];
-			_singleCallEvent(player,'onStateChange',()=>loadNext(false));				
+			_singleCallEvent(player,"onStateChange",()=>loadNext(false));				
 			loadSegment(player, params[0], params[1], params[2], autoPlay);
 		}
 		
@@ -100,7 +100,7 @@
     		If end is negative, it is interpretered as the segment's length instead
 	 */
 	const _loadSegment = function(player, id, start, end, play, callback) {
-		_singleCallEvent(player, 'onStateChange', e=>{
+		_singleCallEvent(player, "onStateChange", e=>{
 			_playSegment(player, play, callback);
 		});
     
@@ -122,7 +122,7 @@
 		player.playVideo();	
 		// Trigger buffering
 		if (!autoPlay) {
-			_singleCallEvent(player,'onStateChange',()=>{
+			_singleCallEvent(player,"onStateChange",()=>{
 				player.pauseVideo();
 			});	
 			return;
@@ -133,7 +133,7 @@
 		
 		// Hides the player when the video stops
 		if (!callback) return;
-		_singleCallEvent(player, 'onStateChange', e=>{
+		_singleCallEvent(player, "onStateChange", e=>{
 			// Stopped state only
 			if (e.data !== 0) return true;
 			callback(e);
@@ -190,7 +190,6 @@
 	var remaining = 2;
 	const whenReady = function() {
 		if (--remaining > 0) return;
-		alert("YES");
 		isStarted = true;
 		for (var pair of initCache) {
 			const temp = pair[1];
@@ -200,7 +199,7 @@
 		initCache = undefined;
 	};
 	
-	_singleCallEvent(global, 'load', function() {
+	_singleCallEvent(global, "load", function() {
 		whenReady();
 	});
 	// Global object name reserved by YT api
