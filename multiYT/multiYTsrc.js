@@ -13,11 +13,10 @@
 	var isStarted = false;
 	var initCache = new Map();
 	global.multiYT_schedulePlayer = function(node,schedule,autoPlay) {
-		if (isStarted) {
+		if (isStarted)
 			MultiPlayer(node,schedule,autoPlay);
-			return;
-		}
-		initCache.set(node,[schedule,autoPlay]);
+		else
+			initCache.set(node,[schedule,autoPlay]);
 	};
 	
 	// This method's scope stare the data about specific duos of viewers
@@ -190,8 +189,8 @@
 	// Wait until both the page and the YT api finished loading
 	var remaining = 2;
 	const whenReady = function() {
-		alert("test")
 		if (--remaining > 0) return;
+		alert("YES");
 		isStarted = true;
 		for (var pair of initCache) {
 			const temp = pair[1];
