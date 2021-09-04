@@ -219,5 +219,5 @@
 		first.parentNode.insertBefore(tag, first);
 		return tag;
 	}
-	_async('script','src',"https://www.youtube.com/iframe_api");
+	//_async('script','src',"https://www.youtube.com/iframe_api");
 })(this);
