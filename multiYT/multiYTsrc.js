@@ -41,7 +41,7 @@
 		const PREFIX = "ytPlayer";
 		for (var i=0; i<PLAYER_CACHE; ++i) {
 			// TODO: Random id!
-			const id = PREFIX+(++lastId);
+			const id = PREFIX+(++lastID);
 			
 			// To avoid flickering, we'll initially load the YT player in an hidden element
 			var mask = document.createElement("span");
