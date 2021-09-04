@@ -12,7 +12,7 @@
 	var initCache = new Map();
 	global.multiYT_schedulePlayer = function(node,schedule,autoPlay) {
 		if (isStarted) {
-			MultiPlayer(node,schedule,autoplay);
+			MultiPlayer(node,schedule,autoPlay);
 			return;
 		}
 		initCache.set(node,[schedule,autoPlay]);
