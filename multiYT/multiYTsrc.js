@@ -6,9 +6,6 @@
 // If you want to represent a *length* rather than the end, use a negative number (-3 means 3 seconds later)
 // For a Proof Of Concept, see https://github.com/laplongejunior/laplongejunior.github.io/blob/master/test/multiyt.html
 
-console.log("test");
-alert("test");
-
 (function(global){
 	"strict mode";
 	var isStarted = false;
