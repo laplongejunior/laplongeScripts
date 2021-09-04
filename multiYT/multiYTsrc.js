@@ -190,6 +190,7 @@
 	// Wait until both the page and the YT api finished loading
 	var remaining = 2;
 	const whenReady = function() {
+		alert("test")
 		if (--remaining > 0) return;
 		isStarted = true;
 		for (var pair of initCache) {
