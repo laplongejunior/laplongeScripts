@@ -17,29 +17,6 @@
 		}
 		initCache.set(node,[schedule,autoPlay]);
 	};
-	
-	// Global object name reserved by YT api
-	global.onYouTubeIframeAPIReady = function() {
-		isStarted = true;
-		global.onYouTubeIframeAPIReady = undefined;
-		for (var pair of initCache) {
-			const temp = pair[1];
-			MultiPlayer(pair[0],temp[0],temp[1]);
-		}
-		initCache = undefined;
-	}
-			
-	_async('script','src',"https://www.youtube.com/iframe_api");
-	function _async() {
-		var tagName = arguments[0];
-		var tag = document.createElement(tagName);
-		var length = arguments.length;
-		for (var i = 1; i+1 < length; i+=2)
-			tag[arguments[i]] = arguments[i+1];
-		var first = document.getElementsByTagName(tagName)[0];
-		first.parentNode.insertBefore(tag, first);
-		return tag;
-	}
 
 	const PlayerState = {
 		NOT_STARTED:-1,
@@ -50,6 +27,7 @@
 		WAITING:5
 	};
 	
+	var lastID = 0;
 	const MultiPlayer = function(container, schedule, autoPlay) {
 		// Only optimized for two players
 		const PLAYER_CACHE = 2;
@@ -63,7 +41,7 @@
 		const PREFIX = "ytPlayer";
 		for (var i=0; i<PLAYER_CACHE; ++i) {
 			// TODO: Random id!
-			const id = PREFIX+i;
+			const id = PREFIX+(++lastId);
 			
 			// To avoid flickering, we'll initially load the YT player in an hidden element
 			var mask = document.createElement("span");
@@ -125,14 +103,14 @@
 	/**
 		Loads the Youtube player to show a segment of a video
 		Also, the player will start buffering in order to start seamlessly
-    If end is negative, it is interpretered as the segment's length instead
+    		If end is negative, it is interpretered as the segment's length instead
 	 */
 	const _loadSegment = function(player, id, start, end, play, callback) {
 		_singleCallEvent(player, "onStateChange", e=>{
 			_playSegment(player, play, callback);
 		});
     
-    if (end < 0) end = start - end;
+    		if (end < 0) end = start - end;
 		player.cueVideoById({
 			'videoId': id,
 			'startSeconds': start,
@@ -173,7 +151,7 @@
 		If said function returns a falsy value (including undefined), the event is removed
 		In practice, if a condition requires to NOT remove the event, it should return true
 	 */
-	function _singleCallEvent(object, name, func) {
+	const _singleCallEvent = function(object, name, func) {
 		const CALL = event=>{
 			if (func(event)) return;
 			object.removeEventListener(name, CALL);
@@ -211,5 +189,28 @@
 				listeners.splice(listeners.indexOf(callback),1);
 		};
 		return YTplayer;
+	}
+	
+	// Global object name reserved by YT api
+	global.onYouTubeIframeAPIReady = function() {
+		isStarted = true;
+		global.onYouTubeIframeAPIReady = undefined;
+		for (var pair of initCache) {
+			const temp = pair[1];
+			MultiPlayer(pair[0],temp[0],temp[1]);
+		}
+		initCache = undefined;
+	}
+			
+	_async('script','src',"https://www.youtube.com/iframe_api");
+	const _async = function() {
+		var tagName = arguments[0];
+		var tag = document.createElement(tagName);
+		var length = arguments.length;
+		for (var i = 1; i+1 < length; i+=2)
+			tag[arguments[i]] = arguments[i+1];
+		var first = document.getElementsByTagName(tagName)[0];
+		first.parentNode.insertBefore(tag, first);
+		return tag;
 	}
 })(this);
