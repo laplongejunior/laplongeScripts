@@ -8,6 +8,8 @@
 
 (function(global){
 	"strict mode";
+	
+	// Entry-point
 	var isStarted = false;
 	var initCache = new Map();
 	global.multiYT_schedulePlayer = function(node,schedule,autoPlay) {
@@ -17,16 +19,8 @@
 		}
 		initCache.set(node,[schedule,autoPlay]);
 	};
-
-	const PlayerState = {
-		NOT_STARTED:-1,
-		STOPPED:0,
-		RUNNING:1,
-		PAUSED:2,
-		BUFFERING:3,
-		WAITING:5
-	};
 	
+	// This method's scope stare the data about specific duos of viewers
 	var lastID = 0;
 	const MultiPlayer = function(container, schedule, autoPlay) {
 		// Only optimized for two players
@@ -91,15 +85,16 @@
 			loadSegment(player, params[0], params[1], params[2], false);
 		}
 		
+		// Object-stated hooks to the stateless methods
 		const loadSegment = function(player, id, start, end, play) {
 			_loadSegment(player, id, start, end, play, ()=>loadNext(true));
 		}
-		
 		const playSegment = function(player, next, autoPlay) {
 			_playSegment(player, autoPlay, next ? ()=>loadNext(true) : null);
 		}
 	}
 	
+	// Global methods not depending on the current state	
 	/**
 		Loads the Youtube player to show a segment of a video
 		Also, the player will start buffering in order to start seamlessly
@@ -140,7 +135,8 @@
 		// Hides the player when the video stops
 		if (!callback) return;
 		_singleCallEvent(player, "onStateChange", e=>{
-			if (e.data !== PlayerState.STOPPED) return true;
+			// Stopped state only
+			if (e.data !== 0) return true;
 			callback(e);
 			e.target.getIframe().style.display = 'none';
 		});
@@ -190,7 +186,29 @@
 		};
 		return YTplayer;
 	}
-			
+	
+	// Wait until both the page and the YT api finished loading
+	var remaining = 2;
+	const whenReady = function() {
+		if (--remaining > 0) return;
+		isStarted = true;
+		for (var pair of initCache) {
+			const temp = pair[1];
+			MultiPlayer(pair[0],temp[0],temp[1]);
+		}
+		initCache = undefined;
+	};
+	global.onload = function() {
+		global.onload = undefined;
+		whenReady();
+	};
+	// Global object name reserved by YT api
+	global.onYouTubeIframeAPIReady = function() {
+		global.onYouTubeIframeAPIReady = undefined;
+		whenReady();
+	}
+	
+	// Load the YT api synchronically (tends to take A LOT of time to setup itself)
 	const _async = function() {
 		var tagName = arguments[0];
 		var tag = document.createElement(tagName);
@@ -200,17 +218,6 @@
 		var first = document.getElementsByTagName(tagName)[0];
 		first.parentNode.insertBefore(tag, first);
 		return tag;
-	}
-	
-	// Global object name reserved by YT api
-	global.onYouTubeIframeAPIReady = function() {
-		isStarted = true;
-		global.onYouTubeIframeAPIReady = undefined;
-		for (var pair of initCache) {
-			const temp = pair[1];
-			MultiPlayer(pair[0],temp[0],temp[1]);
-		}
-		initCache = undefined;
 	}
 	_async('script','src',"https://www.youtube.com/iframe_api");
 })(this);
