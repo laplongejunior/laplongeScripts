@@ -1,4 +1,4 @@
-	// Call multiYT_schedulePlayer with an existing dom node, an array of array representing the video fragments and a boolean on true if the video must start now
+// Call multiYT_schedulePlayer with an existing dom node, an array of array representing the video fragments and a boolean on true if the video must start now
 // This script will create two YT players and will hide/show the secondary one when needed
 // That allows to show several fragments of videos in sequence as the other viewer pre-buffered the following fragment
 // Content of the fragment array : 
