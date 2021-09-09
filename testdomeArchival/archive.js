@@ -24,4 +24,6 @@
 	
 	// Removes website decoration 
 	body.querySelectorAll('.olark-custom-button').forEach(REMOVE);
+	
+    alert("This page has been modified by a userscript!");
 })('send.email.4.programmer.joke@gmail.com');
