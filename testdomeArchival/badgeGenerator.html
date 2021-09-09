@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<span class="cert" data-id="sample" data-name="Peter Gibbons" data-test-name="Java and SQL"></span>
+<br/>
+<span class="cert" data-id="sample" data-name="Peter Gibbons" data-test-name="Java and SQL"></span>
+<script>
+"use strict";
+(function(){
+	var getData = function(element, name) {
+		name = 'data-'+name;
+		var result = element.getAttribute(name);
+		element.removeAttribute(name);
+		return result;
+	};
+	var hasData = function(element, name) {
+		name = 'data-'+name;
+		var result = element.hasAttribute(name);
+		element.removeAttribute(name);
+		return result;
+	};
+	
+	window.addEventListener('message', function(e) {
+		var source = e.source;
+		var iframe = source.frameElement;
+		var canvas = source.result;
+		var container = iframe.parentNode;
+						
+		var link = document.createElement('a');
+		link.href = 'https://www.testdome.com/cert/'+getData(container,'id');
+		link.appendChild(canvas);
+		container.appendChild(link);		
+		container.removeChild(iframe);
+	});
+
+	for (var container of document.getElementsByClassName("cert")) {
+		var params = [hasData(container,'gold'),getData(container,'name'),getData(container,'test-name')];
+		
+		var command = "function(){"
+					+ "var params = JSON.parse('"+JSON.stringify(params).replace(new RegExp('"','g'),'\\"')+"');"
+					+"var setClass = function(element, name) {"
+						+"element.className = 'testdome-certificate-'+name;"
+					+"};"
+				
+					+"return new Promise(function(resolve,reject) {"
+					+"new Promise(function(resolve,reject) {"
+						+"var css = document.createElement('link');"
+						+"css.href = 'https://www.testdome.com/content/source/stylesheets/embed.css';"
+						+"css.rel = 'stylesheet';"
+						+"css.onload = function() { resolve(css); };"
+						+"css.onerror = function() { reject(css); };"
+						+"document.head.appendChild(css);"
+					+"}).then(function(){"
+						+"var badge = document.createElement('a');"
+						+"setClass(badge,'stamp');"
+						+"badge.classList.add(params[0]?'gold':'silver');"
+
+						+"var name = document.createElement('span');"
+						+"setClass(name,'name');"
+						+"name.appendChild(document.createTextNode(params[1]));"
+						+"badge.appendChild(name);"
+
+						+"var test = document.createElement('span');"
+						+"setClass(test,'test-name');"
+						+"test.appendChild(document.createTextNode(params[2]));"
+						+"badge.appendChild(test);"
+						
+						+"var logo = document.createElement('span');"
+						+"setClass(logo,'card-logo');"
+						+"logo.appendChild(document.createTextNode('TestDome'));"
+						+"logo.appendChild(document.createElement('br'));"
+						+"logo.appendChild(document.createTextNode('Certificate'));"
+						+"badge.appendChild(logo);"
+						
+						+"resolve(badge);"
+					+"})});"
+				+"};"
+		
+		var iframe = document.createElement('iframe');
+		iframe.style = 'visibility:hidden;width:1;height:1;';
+		
+		iframe.sandbox = "allow-scripts allow-same-origin";	
+		iframe.srcdoc = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"/><script>\"use strict\"; (function(global){ setTimeout(function(){"
+				
+				+"var loader = new Promise(function(resolve,reject) {"
+					+"var js = global.document.createElement('script');"
+					+"js.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';"
+					+"js.onload = function() { resolve(js); };"
+					+"js.onerror = function() { reject(js); };"
+					+"global.document.head.appendChild(js);"
+				+"});"
+				
+				+"var command = "+command
+				
+				+"loader.then(function(js) {"
+					+"var lib = global.html2canvas;"
+					+"command().then(function(dom) {"						
+						+"document.body.appendChild(dom);"							
+						+"lib(dom,{"
+							+"allowTaint:true,"
+									+"logging:false"
+						+"}).then(function(canvas) {"
+							+"global.result = canvas;"
+							+"parent.postMessage(undefined,'*');"
+						+"});"
+					+"});"
+				+"});"
+			+"},1)})(this);</scr"+"ipt><body></body></html>";
+			
+		container.appendChild(iframe);
+	}
+})();
+</script>
+</body>
+</html>
