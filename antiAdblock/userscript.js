@@ -26,12 +26,16 @@
     // ### CONFIG /start ###
     // #####################
 
-    // If TRUE, the script convert youtube's channel ID into the channel name
-
+    // If TRUE, the script manually convert youtube's channel ID into the channel name
     // It makes the whitelist easier to maintain, but will cause a small delay during the conversion
     // Conversion is done by opening a popup to the channel's page when on an video from an unknown creator
     // The result is put into a cache, which will be updated if the channel page is opened manually later
     const RESOLVE_IDS = true;
+    // If you have access to Youtube's API, you can use it for the channelnamr conversion
+    // The key won't be used if ID resolution is turned off
+    // WARNING: Use of Youtube's API is untested
+    const YOUTUBE_KEY = "";
+
     // If TRUE, reloading a fullscreen video generates an auto-focused div, clicking or typing it in triggers fullscreen
     // Can be helpful if the computer is used as a remote machine controlling a TV, as the fullscreen button is tiny
     // Disabled by default as most users have a mouse :)
@@ -205,7 +209,7 @@
         return name;
     }
 
-    // The Youtube API requires a (costly) key to obtain a channel's name "the easy way"
+    // The Youtube API requires a (private) key to obtain a channel's name "the easy way"
     // But, as the channel page *can* provide it, we'll open the channel page when navigating a video
     // When the name is obtained, it's passed as a parameter to the callback function
     let popup = undefined;
@@ -217,8 +221,14 @@
         if (!RESOLVE_IDS || !id.startsWith('UC')) return callback(id);
 
         // If we don't know the name yet...
-        const loadName = () => {
-            // ...we can open the channel window as a tab, but the change of navigation is even more annoying than opening a popup
+        const loadName;
+        if (YOUTUBE_KEY) loadName = ()=>{
+            //TODO: Send a Youtube API request with the key
+            
+        };
+        // If you don't like to setup an API account, there's a workaround : opening a popup...
+        else loadName = ()=>{
+            // ...we could open the channel window as a tab, but the change of navigation is even more annoying than opening a popup
             // At least the popup will have the minimal size, and it only needs a few seconds to obtain the search URL
             // Note: it only works because the popup is opened on the same domain! And we're already navigating on Youtube...
           const destination = url.substring(url.indexOf("/"));
@@ -242,7 +252,7 @@
         };
 
         // Load the name from the cache, if it's found "return" it immediately
-        // Not in the cache, or broken cache? Look it by creating an annoying popup
+        // Not in the cache, or broken cache? Look it by making an annoying request
         GM.getValue(VALUE_NAME+"-"+platform+"-"+id).then(name => {
             if (name) return callback(name);
             loadName();
