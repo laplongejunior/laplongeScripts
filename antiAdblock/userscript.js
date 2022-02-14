@@ -57,7 +57,7 @@
     // #### CONFIG /end ####
     // #####################
 
-  
+
 
     // There are three auto-generated arguments
     // ?user=CHANEL_NAME to be detected in an adblocker's whitelist
@@ -128,8 +128,8 @@
                 callback();
             }, 3000); // 3 seconds... YT seems to sometimes have the old nodes
         }
-        
-        
+
+
 
         new MutationObserver(run).observe(win.document || win.document.body, { childList: true, subtree: true });
         // Make the callback believes it's an update
@@ -143,7 +143,7 @@
         }
         return undefined;
     };
-  
+
     // By default, querySelector returns the first element in case of multiple matches
     // querySelector should only be used for cases intended for a single match
     // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
@@ -156,9 +156,9 @@
         console.warn("Several matches found for querySelector! Discarding...");
         console.warn(result);
       }
-      return null;      
+      return null;
     };
-  
+
     const URLcontainsParam = (url, ...names) => {
       let params = "";
       for (const name of names) {
@@ -166,6 +166,16 @@
       }
       return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
     }
+
+    let getJSON = function(url, callback) {
+        let xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'json';
+        xhr.onload = function() {
+            callback(xhr.status === 200 ? JSON.parse(xhr.response) : null);
+        };
+        xhr.send();
+    };
 
     // All the code above was rather generic functions not really related to the business tasks
     // NOW, the real script begins!
@@ -182,7 +192,7 @@
     const readChannelFromDom = (platform, win, id) => {
         const doc = win.document;
         let name = undefined;
-      
+
         // The "search" option in a channel page, next to the "video" tab
         let link = querySelectorSafe(doc,'#form');
         if (link) {
@@ -220,14 +230,8 @@
         // Obviously, if the resolution is disabled, the callback is instantaneous :)
         if (!RESOLVE_IDS || !id.startsWith('UC')) return callback(id);
 
-        // If we don't know the name yet...
-        let loadName;
-        if (YOUTUBE_KEY) loadName = ()=>{
-            //TODO: Send a Youtube API request with the key
-            
-        };
         // If you don't like to setup an API account, there's a workaround : opening a popup...
-        else loadName = ()=>{
+        const scrapeName = ()=>{
             // ...we could open the channel window as a tab, but the change of navigation is even more annoying than opening a popup
             // At least the popup will have the minimal size, and it only needs a few seconds to obtain the search URL
             // Note: it only works because the popup is opened on the same domain! And we're already navigating on Youtube...
@@ -250,6 +254,25 @@
               }));
             }
         };
+
+        // If we don't know the name yet...
+        let loadName = ()=>{
+            //TODO: Send a Youtube API request with the key
+            getJSON("https://www.googleapis.com/youtube/v3/channels?key="+YOUTUBE_KEY+"&part=snippet&id="+id, data=>{
+                console.warn(data);
+                const result = data.snippet.customUrl;
+                // If nothing conclusive, use the scraper
+                if (result) result = location.href.match("/(user|channel|c)/(.+)");
+                if (result) result = result[2];
+                if (result) {
+                    callback(result);
+                    return;
+                }
+                scrapeName();
+            });
+        };
+        // No API? Then use the scraper immediately
+        if (!YOUTUBE_URL) loadName = scrapeName;
 
         // Load the name from the cache, if it's found "return" it immediately
         // Not in the cache, or broken cache? Look it by making an annoying request
@@ -286,7 +309,7 @@
         , user:callback=>{
             let base = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild;
             if (!base) return;
-          
+
             let link = base.lastChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
             // Support for live from the channel page itself
             if (!link) {
@@ -312,7 +335,7 @@
     let pendingScreen = (param && param[1] === '1');
 
     // Where we do the bulk of the work
-    const userCheck = () => {      
+    const userCheck = () => {
         // We'll redirect, so at least avoid watching the same intro twice?
         if (pauseVideo) {
             const video = querySelectorSafe(document,"video");
@@ -321,7 +344,7 @@
                 video.pause();
             }
         }
-      
+
         if (pendingScreen) {
             // We need to retry until the video actually loaded
             const target = config.fullscreenControl();
@@ -331,25 +354,25 @@
             initFullscreen(target);
         }
 
-        // If no params, create them      
+        // If no params, create them
         let name = URLcontainsParam(location.href, ADBLOCK_PARAM,HARDCODED_PARAM);
         if (name) {
           // We currently don't use the previous parameter
           //name = name[name.length-1];
           return;
         }
-      
+
         // Find the user, then "redirect" while adding it in a parameter
         // From there, adblockers will be able to react to the URL
         config.user(user => {
             const param = (href,name,param) => {
                // No need to append in current version
                /*
-               let before, after;               
+               let before, after;
                const match = URLcontainsParam(href, name);
                if (match) {
                   const start = match.index;
-                  before = href.substring(0,start);                  
+                  before = href.substring(0,start);
                   after = href.substring(start+name.length+2+match[match.length-1].length);
                } else {
                   before = href;
