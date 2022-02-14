@@ -126,7 +126,7 @@
             pending = setTimeout(() => {
                 pending = null;
                 callback();
-            }, 1000); // 1 second
+            }, 3000); // 3 seconds... YT seems to sometimes have the old nodes
         }
         
         
@@ -221,7 +221,7 @@
         if (!RESOLVE_IDS || !id.startsWith('UC')) return callback(id);
 
         // If we don't know the name yet...
-        const loadName;
+        let loadName;
         if (YOUTUBE_KEY) loadName = ()=>{
             //TODO: Send a Youtube API request with the key
             
