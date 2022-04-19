@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Youtube/Twitch channel inserter
-// @version     1.2
+// @version     1.2.1
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -333,6 +333,9 @@
     let pauseVideo = !NO_DEFAULT_REDIRECT;
     // If fullscreen is a value, the first time the target is available we must alter the size
     let pendingScreen = (param && param[1] === '1');
+	
+    // When twitch switches to offline-mode chat, the parameter is wiped
+    let previousRedirect = undefined;
 
     // Where we do the bulk of the work
     const userCheck = () => {
@@ -355,16 +358,14 @@
         }
 
         // If no params, create them
-        let name = URLcontainsParam(location.href, ADBLOCK_PARAM,HARDCODED_PARAM);
+        let name = URLcontainsParam(location.href, ADBLOCK_PARAM, HARDCODED_PARAM);
         if (name) {
-          // We currently don't use the previous parameter
-          //name = name[name.length-1];
+          // Stores the channel name to counter-wipe
+          previousRedirect = name[name.length-1];
           return;
         }
 
-        // Find the user, then "redirect" while adding it in a parameter
-        // From there, adblockers will be able to react to the URL
-        config.user(user => {
+        const redirect = (user,reload) => {
             const param = (href,name,param) => {
                // No need to append in current version
                /*
@@ -382,7 +383,7 @@
                const before = href, after = "";
                return before + ((before.indexOf(separator) == -1) ? separator : "&") + name+"="+encodeURIComponent(param) + after;
             };
-            let url = location.href;
+            let url = reload ? global.location.href : global.location.pathname+global.location.search;
 
             // If there's a whitelist, add the parameter in the URL
             if (HARDCODED_WHITELIST.length != 0) {
@@ -393,10 +394,19 @@
 
             if (!NO_DEFAULT_REDIRECT) url = param(url, ADBLOCK_PARAM, user);
             if (FULLSCREEN_RESTORATION) url = param(url, SCREEN_PARAM, document.fullscreenElement?'1':'0');
-            location.replace(url);
-        });
+
+            // At least the adblocker will be enabled during loading and will only be disabled for a little moment
+            if (reload) global.location.replace(url);
+            else global.history.replaceState(null, global.document.title, url);
+        };
+
+        // If the website wiped the parameter, put it back
+        if (previousRedirect) redirect(previousRedirect,false);
+        // Find the user, then "redirect" while adding it in a parameter
+        // From there, adblockers will be able to react to the URL
+        else config.user(user=>redirect(user,true));
     }
 
 	// If there's a DOM modification, schedule a new try
-    callFunctionAfterUpdates(global, userCheck);
+	callFunctionAfterUpdates(global, userCheck);
 })(unsafeWindow||this);
