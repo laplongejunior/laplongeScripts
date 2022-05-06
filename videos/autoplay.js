@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name        Convenient autoplay
-// @version     0.0.1
+// @version     0.0.2
 // @description Auto-advance from one episode to another
 // @author      laplongejunior
+// @match       *://*.example.org/*
 // @run-at      document-end
 // ==/UserScript==
 
@@ -60,8 +61,16 @@
         tStyle.textAlign = "center";
         tStyle.fontSize = "15px";
 
+        // Set zIndex so that it always overlays the page
+        tStyle.zIndex = 1+Math.max(0,
+            ...Array.from(global.document.body.querySelectorAll('*'), el =>
+                          parseFloat(window.getComputedStyle(el).zIndex),
+                         ).filter(zIndex => !Number.isNaN(zIndex)),
+        );
+        console.log(tStyle.zIndex);
+
         // In my "remote phone" UX, focusing on a text field allows to simply input any key to restore FS
-        input.focus();
+        setTimeout(()=>input.focus(),1000);
 
         return triggerArea;
     };
@@ -169,17 +178,16 @@
             let pos = href.indexOf(separator);
             if (pos >= 0)
                 href = href.substring(0,pos);
-            console.warn(href);
             nextVideo.href = href+separator+HOST_PARAM+'='+lastHost;
 
             if (redirect)
                 global.document.body.removeChild(redirect);
             global.document.body.appendChild(redirect = clickRedirect(nextVideo,'load next video'));
-
         }
     });
 
-    const videoName = URLcontainsParam(global.location.href, HOST_PARAM)[2];
+    let videoName = URLcontainsParam(global.location.href, HOST_PARAM);
+    if (videoName) videoName = videoName[2];
 
     const main = () => {
         const videos = querySelectorSafe(global.document,'#content .post-wrapper');
