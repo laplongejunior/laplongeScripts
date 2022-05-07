@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Convenient autoplay
-// @version     0.0.2
-// @description Auto-advance from one episode to another
+// @version     0.0.3
+// @description Auto-advance from one video to another
 // @author      laplongejunior
 // @match       *://*.example.org/*
 // @run-at      document-end
@@ -9,6 +9,9 @@
 
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 	"use strict";
+
+    // To allow easy redirects
+    const console = global.console;
 
     // #####################
     // ### CONFIG /start ###
@@ -67,7 +70,6 @@
                           parseFloat(window.getComputedStyle(el).zIndex),
                          ).filter(zIndex => !Number.isNaN(zIndex)),
         );
-        console.log(tStyle.zIndex);
 
         // In my "remote phone" UX, focusing on a text field allows to simply input any key to restore FS
         setTimeout(()=>input.focus(),1000);
@@ -202,6 +204,7 @@
         }
         if (!hostVideo) return;
 
+        hostVideo.scrollIntoView();
         querySelectorSafe(querySelectorSafe(hostVideo.firstChild, 'iframe', false).contentWindow.document, 'input').click();
     };
 
