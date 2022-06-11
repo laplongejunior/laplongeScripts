@@ -4,6 +4,7 @@
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
+// @require     https://combinatronics.com/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
 // @match       *://*.youtube.com/*
 // @match       *://*.twitch.tv/*
 // @grant       GM.setValue
@@ -22,6 +23,11 @@
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 	"use strict";
 
+    // To allow easy redirects
+    const console = global.console;
+    const UTILS = global.laplongeUtils;
+    UTILS.enableMapFindPolyfill();
+
     // #####################
     // ### CONFIG /start ###
     // #####################
@@ -31,7 +37,7 @@
     // Conversion is done by opening a popup to the channel's page when on an video from an unknown creator
     // The result is put into a cache, which will be updated if the channel page is opened manually later
     const RESOLVE_IDS = true;
-    // If you have access to Youtube's API, you can use it for the channelnamr conversion
+    // If you have access to Youtube's API, you can use it for the channelname conversion
     // The key won't be used if ID resolution is turned off
     // WARNING: Use of Youtube's API is untested
     const YOUTUBE_KEY = "";
@@ -57,8 +63,6 @@
     // #### CONFIG /end ####
     // #####################
 
-
-
     // There are three auto-generated arguments
     // ?user=CHANEL_NAME to be detected in an adblocker's whitelist
     // &fullscreen=0/1 used to enabled easy fullscreening
@@ -67,118 +71,6 @@
     // This script obviously doesn't need to run in a popup used for id resolving
     const PARAM_RESOLVE = "origin=popup";
     if (location.href.match('(?:[?&#])('+PARAM_RESOLVE+')') !== null) return;
-
-    // Fullscreen can only be initiated by a "user gesture"
-    // Create a HUGE area to invite to click/type, thn redirect that to the video's control bar
-    // It allows to trigger FS easily when from a small screen with remote desktop
-    const initFullscreen = element => {
-        // I won't comment this code, self-explanatory
-        const triggerArea = document.createElement("div");
-        element.addEventListener("click", ()=>triggerArea.remove());
-        ["keypress","click"].forEach(gesture => triggerArea.addEventListener(gesture, ()=>element.click()));
-
-        const closeButton = document.createElement("span");
-        closeButton.addEventListener("click", (event) => {
-            event.stopPropagation();
-            triggerArea.remove();
-        });
-
-        const cStyle = closeButton.style;
-        cStyle.position="absolute";
-        cStyle.top = "0px";
-        cStyle.right = "0px";
-        cStyle.cursor = "pointer";
-
-        closeButton.appendChild(document.createTextNode('[X]'));
-        triggerArea.appendChild(closeButton);
-
-        triggerArea.appendChild(document.createTextNode('Press a button or click to restore fullscreen'));
-        triggerArea.appendChild(document.createElement("br"));
-
-        const input = document.createElement("input");
-        input.type = "text";
-        triggerArea.appendChild(input);
-
-        const tStyle = triggerArea.style;
-
-        tStyle.position = "fixed";
-        tStyle.left = "50%";
-        tStyle.transform = "translate(-50%,0)";
-        tStyle.width = "500px";
-        tStyle.height = "50px";
-        tStyle.bottom = "10px";
-        tStyle.backgroundColor = "red";
-        tStyle.textAlign = "center";
-        tStyle.fontSize = "15px";
-
-        document.body.appendChild(triggerArea);
-        // In my "remote phone" UX, focusing on a text field allows to simply input any key to restore FS
-        input.focus();
-    };
-
-    // Basically, calls callback once, then recalls it everytime there's a new node
-    // We use win instead of "window" because this function must also work with the data-resolution popup
-    const callFunctionAfterUpdates = (win, callback) => {
-        let pending = null;
-        const run = mutations => {
-            // No need to schedule several tries at the same time
-            if (pending !== null || !mutations.some(mutation => mutation.addedNodes)) return;
-            pending = setTimeout(() => {
-                pending = null;
-                callback();
-            }, 3000); // 3 seconds... YT seems to sometimes have the old nodes
-        }
-
-
-
-        new MutationObserver(run).observe(win.document || win.document.body, { childList: true, subtree: true });
-        // Make the callback believes it's an update
-        run([{addedNodes:true}]);
-    };
-
-    // Polyfill
-    global.Map.prototype.find = function(filter, _this) {
-        for (const [key,data] of this) {
-            if (filter.call(_this,key,data,this)) return data;
-        }
-        return undefined;
-    };
-
-    // By default, querySelector returns the first element in case of multiple matches
-    // querySelector should only be used for cases intended for a single match
-    // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
-    // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
-    const _querySelectorAll = HTMLDocument.prototype.querySelectorAll
-    const querySelectorSafe = function(doc, selector) {
-      const result = _querySelectorAll.call(doc, selector);
-      if (result.length == 1) return result.item(0);
-      if (result.length > 1) {
-        console.warn("Several matches found for querySelector! Discarding...");
-        console.warn(result);
-      }
-      return null;
-    };
-
-    const URLcontainsParam = (url, ...names) => {
-      let params = "";
-      for (const name of names) {
-        params += "|" + name;
-      }
-      return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
-    }
-
-    let getJSON = function(url, callback) {
-        let xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'json';
-        xhr.onload = function() {
-            callback(xhr.status === 200 ? JSON.parse(xhr.response) : null);
-        };
-        xhr.send();
-    };
-
-    // All the code above was rather generic functions not really related to the business tasks
-    // NOW, the real script begins!
 
     // The name to store in the script engine's cache
     const VALUE_NAME = "channels";
@@ -194,7 +86,7 @@
         let name = undefined;
 
         // The "search" option in a channel page, next to the "video" tab
-        let link = querySelectorSafe(doc,'#form');
+        let link = UTILS.querySelectorSafe(doc,'#form');
         if (link) {
           name = link.action.match("(?<="+location.hostname+"/).*(?=/search)")[0];
           const index = name.indexOf('/');
@@ -203,7 +95,7 @@
         else {
             // Some kid channels lack a search button...
             // https://www.youtube.com/watch?v=xooqiT-tm-4 => https://www.youtube.com/channel/UCTbN5fQiw9LJbLhkjGgXb2w
-            link = querySelectorSafe(doc,'#meta > #channel-name > div > div > #text');
+            link = UTILS.querySelectorSafe(doc,'#meta > #channel-name > div > div > #text');
             if (!link) return null;
             link = link.textContent;
 
@@ -244,7 +136,7 @@
             }
             else {
               // Once the popup is loaded, call an event and recall it after each added node
-              popup.addEventListener("load", () => callFunctionAfterUpdates(popup, () => {
+              popup.addEventListener("load", () => UTILS.callFunctionAfterUpdates(popup, () => {
                 // Search the name from the search URL, if found close the popup and "return" the value
                 const channel = readChannelFromDom(platform, popup.window, id);
                 if (!channel) return;
@@ -258,7 +150,7 @@
         // If we don't know the name yet...
         let loadName = ()=>{
             //TODO: Send a Youtube API request with the key
-            getJSON("https://www.googleapis.com/youtube/v3/channels?key="+YOUTUBE_KEY+"&part=snippet&id="+id, data=>{
+            UTILS.getJSON("https://www.googleapis.com/youtube/v3/channels?key="+YOUTUBE_KEY+"&part=snippet&id="+id, data=>{
                 console.warn(data);
                 const result = data.snippet.customUrl;
                 // If nothing conclusive, use the scraper
@@ -272,7 +164,7 @@
             });
         };
         // No API? Then use the scraper immediately
-        if (!YOUTUBE_URL) loadName = scrapeName;
+        if (!YOUTUBE_KEY) loadName = scrapeName;
 
         // Load the name from the cache, if it's found "return" it immediately
         // Not in the cache, or broken cache? Look it by making an annoying request
@@ -289,7 +181,7 @@
 
     platformMap.set(/\.youtube.com/,{
         clientSupport:true
-        , fullscreenControl:()=>querySelectorSafe(document,".ytp-fullscreen-button")
+        , fullscreenControl:()=>UTILS.querySelectorSafe(document,".ytp-fullscreen-button")
         , user:callback=>{
             var PLATFORM = "youtube";
             let name = location.href.match("/(user|channel|c)/(.+)");
@@ -299,15 +191,15 @@
             // The query selector is so simple it catches unrelated channels during global searches
             if (!location.pathname.substring(1).startsWith("watch")) return;
             // Video page
-            const link = querySelectorSafe(document,'.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
+            const link = UTILS.querySelectorSafe(document,'.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
             if (link) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
         }
     });
 
     platformMap.set(/\.twitch.tv/,{clientSupport:false
-        , fullscreenControl:()=> querySelectorSafe(document,"button[data-a-target=player-fullscreen-button]")
+        , fullscreenControl:()=> UTILS.querySelectorSafe(document,"button[data-a-target=player-fullscreen-button]")
         , user:callback=>{
-            let base = querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild;
+            let base = UTILS.querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild;
             if (!base) return;
 
             let link = base.lastChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
@@ -333,7 +225,7 @@
     let pauseVideo = !NO_DEFAULT_REDIRECT;
     // If fullscreen is a value, the first time the target is available we must alter the size
     let pendingScreen = (param && param[1] === '1');
-	
+
     // When twitch switches to offline-mode chat, the parameter is wiped
     let previousRedirect = undefined;
 
@@ -341,7 +233,7 @@
     const userCheck = () => {
         // We'll redirect, so at least avoid watching the same intro twice?
         if (pauseVideo) {
-            const video = querySelectorSafe(document,"video");
+            const video = UTILS.querySelectorSafe(document,"video");
             if (video) {
                 pauseVideo = false;
                 video.pause();
@@ -354,11 +246,11 @@
             if (!target) return;
             // Remember that we already tried to FS once, then attempt to FS
             pendingScreen = false;
-            initFullscreen(target);
+            UTILS.clickRedirect(target, 'restore fullscreen');
         }
 
         // If no params, create them
-        let name = URLcontainsParam(location.href, ADBLOCK_PARAM, HARDCODED_PARAM);
+        let name = UTILS.URLcontainsParam(location.href, ADBLOCK_PARAM, HARDCODED_PARAM);
         if (name) {
           // Stores the channel name to counter-wipe
           previousRedirect = name[name.length-1];
@@ -408,5 +300,5 @@
     }
 
 	// If there's a DOM modification, schedule a new try
-	callFunctionAfterUpdates(global, userCheck);
+    UTILS.callFunctionAfterUpdates(global, userCheck);
 })(unsafeWindow||this);
