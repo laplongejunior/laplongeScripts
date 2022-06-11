@@ -81,9 +81,11 @@ global.laplongeUtils = {
             }, 3000); // 3 seconds... YT seems to sometimes have the old nodes
         }
 
-        new MutationObserver(run).observe(win.document || win.document.body, { childList: true, subtree: true });
+	let observer = new MutationObserver(run);
+        observer.observe(win.document || win.document.body, { childList: true, subtree: true });
         // Make the callback believes it's an update
         run([{addedNodes:true}]);
+	return observer;
     },
 
     // By default, querySelector returns the first element in case of multiple matches
