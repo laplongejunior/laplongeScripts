@@ -1,4 +1,3 @@
-# For hot-linking : https://cdn.jsdelivr.net/gh/laplongejunior/laplongeScripts/utilityLib/laplongeLib.min.js
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 "use strict";
 const _querySelectorAll_Doc = HTMLDocument.prototype.querySelectorAll;
