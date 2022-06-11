@@ -1,21 +1,22 @@
+# For hot-linking : https://cdn.jsdelivr.net/gh/laplongejunior/laplongeScripts/utilityLib/laplongeLib.min.js
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 "use strict";
 const _querySelectorAll_Doc = HTMLDocument.prototype.querySelectorAll;
 const _querySelectorAll_Elem = HTMLElement.prototype.querySelectorAll;
 
-// Polyfill
-global.Map.prototype.find = function(filter, _this) {
-    for (const [key,data] of this) {
-        if (filter.call(_this,key,data,this)) return data;
-    }
-    return undefined;
-};
-	
 global.laplongeUtils = {
+	// Polyfill
+	enableMapFindPolyfill: ()=>{global.Map.prototype.find = function(filter, _this) {
+		for (const [key,data] of this) {
+			if (filter.call(_this,key,data,this)) return data;
+		}
+		return undefined;
+	}},
+
 	// Fullscreen can only be initiated by a "user gesture"
     // Create a HUGE area to invite to click/type, thn redirect that to the video's control bar
     // It allows to trigger FS easily when from a small screen with remote desktop
-    clickRedirect = (target,msg) => {
+    clickRedirect: (target,msg) => {
         // I won't comment this code, self-explanatory
         const triggerArea = global.document.createElement("div");
         target.addEventListener("click", ()=>triggerArea.remove());
@@ -70,7 +71,7 @@ global.laplongeUtils = {
 
     // Basically, calls callback once, then recalls it everytime there's a new node
     // We use win instead of "window" because this function must also work with the data-resolution popup
-    callFunctionAfterUpdates = (win, callback) => {
+    callFunctionAfterUpdates: (win, callback) => {
         let pending = null;
         const run = mutations => {
             // No need to schedule several tries at the same time
@@ -90,7 +91,7 @@ global.laplongeUtils = {
     // querySelector should only be used for cases intended for a single match
     // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
     // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
-    querySelectorSafe = function(doc, selector, isDoc=true) {
+    querySelectorSafe: function(doc, selector, isDoc=true) {
       const proto = isDoc ? _querySelectorAll_Doc : _querySelectorAll_Elem;
       const result = proto.call(doc, selector);
       if (result.length == 1) return result.item(0);
@@ -101,7 +102,7 @@ global.laplongeUtils = {
       return null;
     },
 
-    URLcontainsParam = (url, ...names) => {
+    URLcontainsParam: (url, ...names) => {
       let params = "";
       for (const name of names) {
         params += "|" + name;
@@ -109,7 +110,7 @@ global.laplongeUtils = {
       return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
     },
 
-    getJSON = function(url, callback) {
+    getJSON: (url, callback) => {
         let xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'json';
