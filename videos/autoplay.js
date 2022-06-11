@@ -3,6 +3,7 @@
 // @version     0.0.3
 // @description Auto-advance from one video to another
 // @author      laplongejunior
+// @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
 // @require     https://combinatronics.com/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
 // @match       *://*.example.org/*
 // @run-at      document-end
@@ -14,6 +15,7 @@
     // To allow easy redirects
     const console = global.console;
     const UTILS = global.laplongeUtils;
+    UTILS.enableMapFindPolyfill();
 
     // #####################
     // ### CONFIG /start ###
@@ -22,8 +24,6 @@
     // #####################
     // #### CONFIG /end ####
     // #####################
-
-    UTILS.enableMapFindPolyfill();
 
     // Find the host of the video
     const locateHost = (element) => {
