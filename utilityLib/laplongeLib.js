@@ -1,7 +1,21 @@
-// Fullscreen can only be initiated by a "user gesture"
+(function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
+"use strict";
+const _querySelectorAll_Doc = HTMLDocument.prototype.querySelectorAll;
+const _querySelectorAll_Elem = HTMLElement.prototype.querySelectorAll;
+
+// Polyfill
+global.Map.prototype.find = function(filter, _this) {
+    for (const [key,data] of this) {
+        if (filter.call(_this,key,data,this)) return data;
+    }
+    return undefined;
+};
+	
+global.laplongeUtils = {
+	// Fullscreen can only be initiated by a "user gesture"
     // Create a HUGE area to invite to click/type, thn redirect that to the video's control bar
     // It allows to trigger FS easily when from a small screen with remote desktop
-    const clickRedirect = (target,msg) => {
+    clickRedirect = (target,msg) => {
         // I won't comment this code, self-explanatory
         const triggerArea = global.document.createElement("div");
         target.addEventListener("click", ()=>triggerArea.remove());
@@ -52,11 +66,11 @@
         setTimeout(()=>input.focus(),1000);
 
         return triggerArea;
-    };
+    },
 
     // Basically, calls callback once, then recalls it everytime there's a new node
     // We use win instead of "window" because this function must also work with the data-resolution popup
-    const callFunctionAfterUpdates = (win, callback) => {
+    callFunctionAfterUpdates = (win, callback) => {
         let pending = null;
         const run = mutations => {
             // No need to schedule several tries at the same time
@@ -70,42 +84,32 @@
         new MutationObserver(run).observe(win.document || win.document.body, { childList: true, subtree: true });
         // Make the callback believes it's an update
         run([{addedNodes:true}]);
-    };
-
-    // Polyfill
-    global.Map.prototype.find = function(filter, _this) {
-        for (const [key,data] of this) {
-            if (filter.call(_this,key,data,this)) return data;
-        }
-        return undefined;
-    };
+    },
 
     // By default, querySelector returns the first element in case of multiple matches
     // querySelector should only be used for cases intended for a single match
     // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
     // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
-    const _querySelectorAll_Doc = HTMLDocument.prototype.querySelectorAll
-    const _querySelectorAll_Elem = HTMLElement.prototype.querySelectorAll
-    const querySelectorSafe = function(doc, selector, isDoc=true) {
+    querySelectorSafe = function(doc, selector, isDoc=true) {
       const proto = isDoc ? _querySelectorAll_Doc : _querySelectorAll_Elem;
       const result = proto.call(doc, selector);
       if (result.length == 1) return result.item(0);
       if (result.length > 1) {
-        console.warn("Several matches found for querySelector! Discarding...");
-        console.warn(result);
+        global.console.warn("Several matches found for querySelector! Discarding...");
+        global.console.warn(result);
       }
       return null;
-    };
+    },
 
-    const URLcontainsParam = (url, ...names) => {
+    URLcontainsParam = (url, ...names) => {
       let params = "";
       for (const name of names) {
         params += "|" + name;
       }
       return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
-    }
+    },
 
-    let getJSON = function(url, callback) {
+    getJSON = function(url, callback) {
         let xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'json';
@@ -113,4 +117,6 @@
             callback(xhr.status === 200 ? JSON.parse(xhr.response) : null);
         };
         xhr.send();
-    };
+    }
+};
+})(unsafeWindow||this);
