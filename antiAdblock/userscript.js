@@ -86,7 +86,7 @@
         let name = undefined;
 
         // The "search" option in a channel page, next to the "video" tab
-        let link = UTILS.querySelectorSafe(doc,'#form');
+        let link = UTILS.querySelectorSafe(doc.documentElement,'#form');
         if (link) {
           name = link.action.match("(?<="+location.hostname+"/).*(?=/search)")[0];
           const index = name.indexOf('/');
@@ -95,7 +95,7 @@
         else {
             // Some kid channels lack a search button...
             // https://www.youtube.com/watch?v=xooqiT-tm-4 => https://www.youtube.com/channel/UCTbN5fQiw9LJbLhkjGgXb2w
-            link = UTILS.querySelectorSafe(doc,'#meta > #channel-name > div > div > #text');
+            link = UTILS.querySelectorSafe(doc.documentElement,'#meta > #channel-name > div > div > #text');
             if (!link) return null;
             link = link.textContent;
 
@@ -181,7 +181,7 @@
 
     platformMap.set(/\.youtube.com/,{
         clientSupport:true
-        , fullscreenControl:()=>UTILS.querySelectorSafe(document,".ytp-fullscreen-button")
+        , fullscreenControl:()=>UTILS.querySelectorSafe(document.documentElement,".ytp-fullscreen-button")
         , user:callback=>{
             var PLATFORM = "youtube";
             let name = location.href.match("/(user|channel|c)/(.+)");
@@ -191,15 +191,15 @@
             // The query selector is so simple it catches unrelated channels during global searches
             if (!location.pathname.substring(1).startsWith("watch")) return;
             // Video page
-            const link = UTILS.querySelectorSafe(document,'.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
+            const link = UTILS.querySelectorSafe(document.documentElement,'.ytd-video-owner-renderer > #container > div > yt-formatted-string > a');
             if (link) identifyChannel(PLATFORM, link.getAttribute('href'),callback);
         }
     });
 
     platformMap.set(/\.twitch.tv/,{clientSupport:false
-        , fullscreenControl:()=> UTILS.querySelectorSafe(document,"button[data-a-target=player-fullscreen-button]")
+        , fullscreenControl:()=> UTILS.querySelectorSafe(document.documentElement,"button[data-a-target=player-fullscreen-button]")
         , user:callback=>{
-            let base = UTILS.querySelectorSafe(document,'.channel-info-content')?.firstChild?.firstChild;
+            let base = UTILS.querySelectorSafe(document.documentElement,'.channel-info-content')?.firstChild?.firstChild;
             if (!base) return;
 
             let link = base.lastChild?.firstChild?.lastChild?.firstChild?.firstChild?.firstChild;
@@ -233,7 +233,7 @@
     const userCheck = () => {
         // We'll redirect, so at least avoid watching the same intro twice?
         if (pauseVideo) {
-            const video = UTILS.querySelectorSafe(document,"video");
+            const video = UTILS.querySelectorSafe(document.documentElement,"video");
             if (video) {
                 pauseVideo = false;
                 video.pause();
