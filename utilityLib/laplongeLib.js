@@ -92,7 +92,7 @@ global.laplongeUtils = {
     // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
     // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
     querySelectorSafe: function(element, selector) {
-      const result = proto.call(element, _querySelectorAll);
+      const result = _querySelectorAll.call(element, selector);
       if (result.length == 1) return result.item(0);
       if (result.length > 1) {
         global.console.warn("Several matches found for querySelector! Discarding...");
