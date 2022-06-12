@@ -27,9 +27,9 @@
 
     // Find the host of the video
     const locateHost = (element) => {
-        let child = UTILS.querySelectorSafe(element,'tr',false);
+        let child = UTILS.querySelectorSafe(element,'tr');
         if (!child) return "";
-        return UTILS.querySelectorSafe(child.lastChild,'titre6',false).lastChild.textContent.toLowerCase();
+        return UTILS.querySelectorSafe(child.lastChild,'titre6').lastChild.textContent.toLowerCase();
     };
 
     const separator = '#', SCREEN_PARAM = "fullscreen", HOST_PARAM = "host";
@@ -46,7 +46,7 @@
             lastHost = locateHost(target.parentElement.parentElement);
         }
         else {
-            const links = UTILS.querySelectorSafe(global.document,'#sidebar .post_list .clearfix');
+            const links = UTILS.querySelectorSafe(global.document.documentElement,'#sidebar .post_list .clearfix');
             if (!links) return;
 
             let takeTheNext = false;
@@ -76,7 +76,7 @@
     if (videoName) videoName = videoName[2];
 
     const main = () => {
-        const videos = UTILS.querySelectorSafe(global.document,'#content .post-wrapper');
+        const videos = UTILS.querySelectorSafe(global.document.documentElement,'#content .post-wrapper');
         if (!videos) return;
 
         let hostVideo = null;
@@ -89,7 +89,7 @@
         if (!hostVideo) return;
 
         hostVideo.scrollIntoView();
-        UTILS.querySelectorSafe(UTILS.querySelectorSafe(hostVideo.firstChild, 'iframe', false).contentWindow.document, 'input').click();
+        UTILS.querySelectorSafe(UTILS.querySelectorSafe(hostVideo.firstChild, 'iframe').contentWindow.document.documentElement, 'input').click();
     };
 
 	// If there's a DOM modification, schedule a new try
