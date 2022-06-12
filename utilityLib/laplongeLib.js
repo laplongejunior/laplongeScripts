@@ -1,6 +1,6 @@
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 "use strict";
-const _querySelectorAll = HTMLElement.prototype.querySelectorAll;
+const _querySelectorAll = Element.prototype.querySelectorAll;
 
 global.laplongeUtils = {
 	// Polyfill
