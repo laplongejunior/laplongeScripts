@@ -9,3 +9,6 @@ Chrome is then closed and the temporary subfolder is deleted
 
 To use it, download the driver from Selenium and create an empty folder
 Start my .jar with three parameters : the type of browser you want to use ("CHROME" for now), the path to the .exe driver and the path to put the pdf
+
+The project has been slightly updated so that the code doesn't require all possible drivers to compile, so you may need to edit the pom to add other drivers
+An example of the hierachy of selenium dependencies is available at stackoverflow : https://stackoverflow.com/questions/54841651/
