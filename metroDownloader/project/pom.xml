@@ -14,13 +14,18 @@
     <selenium.version>4.3.0</selenium.version>
   </properties>
 
-  <dependencies>
+  <dependencies><!--
     <dependency>
-	  <groupId>org.seleniumhq.selenium</groupId>
-	  <artifactId>selenium-support</artifactId>
-	  <version>${selenium.version}</version>
-	  <scope>compile</scope>
-	</dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-java</artifactId>
+      <version>${selenium.version}</version>
+    </dependency>-->
+    <dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-support</artifactId>
+      <version>${selenium.version}</version>
+      <scope>compile</scope>
+    </dependency>
     <dependency>
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-chrome-driver</artifactId>
