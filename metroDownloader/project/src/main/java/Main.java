@@ -3,20 +3,21 @@ import java.nio.file.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.*;
 
 public class Main 
 {
+	private static final String SELENIUM = "org.openqa.selenium.";
     private enum BROWSER {
         CHROME((driver,download)->{
+        	// Sets the location of the driver without needing to add it to the path
+        	// Makes way easier to integrate the tool into existing batches
             System.setProperty("webdriver.chrome.driver", driver);
 
+            // Sets Chrome so that PDFs end in our specific folder rather than in the integrated viewer
             Map<String, Object> chromePrefs = new HashMap<>();
             if (download != null) {
                 chromePrefs.put("plugins.always_open_pdf_externally", true);
@@ -24,15 +25,17 @@ public class Main
                 chromePrefs.put("download.default_directory", download);
             }
 
+            // If we load the browser the usual way, then we need *all drivers* during compilation
+            // By using reflection, we only need the one specific driver at runtime
+            final String PACKAGE = SELENIUM+"chrome.";
             try {
-                final String SELENIUM = "org.openqa.selenium.chrome.";
 //                ChromeOptions options = new ChromeOptions();
-                final Class<?> chromeClass = Class.forName(SELENIUM+"ChromeOptions");
+                final Class<?> chromeClass = Class.forName(PACKAGE+"ChromeOptions");
                 Object ChromeOptions = chromeClass.newInstance();
 //                options.setExperimentalOption("prefs", chromePrefs);
                 chromeClass.getMethod("setExperimentalOption", String.class, Object.class).invoke(ChromeOptions, "prefs", chromePrefs);
 //                return new ChromeDriver(options);
-                return (WebDriver) Class.forName(SELENIUM+"ChromeDriver").getConstructor(chromeClass).newInstance(ChromeOptions);
+                return (WebDriver) Class.forName(PACKAGE+"ChromeDriver").getConstructor(chromeClass).newInstance(ChromeOptions);
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
@@ -48,7 +51,8 @@ public class Main
     }
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final Set<DayOfWeek> releaseDays = new HashSet<>(Arrays.asList(DayOfWeek.TUESDAY/*, DayOfWeek.FRIDAY*/));
+    // During holidays there are less releases, thankfully the website provides the date of last release as well
+    private static final Set<DayOfWeek> releaseDays = new HashSet<>(Arrays.asList(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY));
     public static void main(String[] args)
     {
         final String driverType = loadArg(0, args), driverPath = loadArg(1, args), downloadPath = loadArg(2, args);
@@ -78,14 +82,12 @@ public class Main
             driver.quit();
     }
 
-    // TODO: Check if the file already exists
     private void init(String driverPath, Path fileDir, BROWSER driverType) throws Exception {
-        LocalDate target = LocalDate.now();
+        // Optimisation check 1 : check if the last expected newspaper already exists
+    	LocalDate target = LocalDate.now();
         while (!releaseDays.contains(target.getDayOfWeek()))
             target = target.minusDays(1L);
-        
-        String targetName = (target.format(formatter)+".pdf");
-        if (Files.exists(fileDir.resolve(targetName))) return;
+        if (Files.exists(fileDir.resolve(target.format(formatter)+".pdf"))) return;
         
         Path tempPath = fileDir.resolve("temp");
         java.io.File tempDir = tempPath.toFile();
@@ -126,8 +128,14 @@ public class Main
     private boolean downloadPdf(WebDriver driver, Path fileDir, Path tempPath, BROWSER driverType) throws Exception {        
         return waitForPdfs(1, tempPath, ()->{
             driver.get("https://journal.metrotime.be/");
-            // document.querySelector(".r--icon-pdf").click()            
             WebDriverWait wait = new WebDriverWait(driver, java.time.Duration.ofSeconds(60));
+            
+            // Optimisation check 2 : check if the last actually released newspaper already exists
+            Select dateSelect = new Select(wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("date_select"))));
+            String latest = dateSelect.getOptions().stream().map(a->a.getAttribute("value")).max(String.CASE_INSENSITIVE_ORDER).orElse(null);
+            if (Files.exists(fileDir.resolve(latest+".pdf"))) return Boolean.FALSE;
+            
+            // document.querySelector(".r--icon-pdf").click()
             WebElement button = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("r--icon-pdf")));
             if (button == null) return Boolean.FALSE;
             button.click();
