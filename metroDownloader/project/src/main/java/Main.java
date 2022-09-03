@@ -10,17 +10,17 @@ import org.openqa.selenium.support.ui.*;
 
 public class Main 
 {
-	public static int
-		EXIT_SUCCESS = 0, 	// Everything is fine
-		EXIT_UNKNOWN = 1, 	// Stacktrace is printed by application
-		EXIT_ARG = 2, 		// Caller script should report a missing argument
-		EXIT_LOCATION = 3;	// Caller should report the download location doesn't exist
-	
-	private static final String SELENIUM = "org.openqa.selenium.";
+    public static int
+        EXIT_SUCCESS = 0,     // Everything is fine
+        EXIT_UNKNOWN = 1,     // Stacktrace is printed by application
+        EXIT_ARG = 2,         // Caller script should report a missing argument
+        EXIT_LOCATION = 3;    // Caller should report the download location doesn't exist
+    
+    private static final String SELENIUM = "org.openqa.selenium.";
     private enum BROWSER {
         CHROME((driver,download)->{
-        	// Sets the location of the driver without needing to add it to the path
-        	// Makes way easier to integrate the tool into existing batches
+            // Sets the location of the driver without needing to add it to the path
+            // Makes way easier to integrate the tool into existing batches
             System.setProperty("webdriver.chrome.driver", driver);
 
             // Sets Chrome so that PDFs end in our specific folder rather than in the integrated viewer
@@ -63,12 +63,12 @@ public class Main
     {
         final String driverType = loadArg(0, args), driverPath = loadArg(1, args), downloadPath = loadArg(2, args);
         if (driverPath == null || downloadPath == null) {
-        	System.exit(EXIT_ARG);
+            System.exit(EXIT_ARG);
             return;
         }
         Path fileDir = Paths.get(downloadPath);
         if (!Files.exists(fileDir)) {
-        	System.exit(EXIT_LOCATION);
+            System.exit(EXIT_LOCATION);
             return;
         }
         
@@ -92,7 +92,7 @@ public class Main
 
     private void init(String driverPath, Path fileDir, BROWSER driverType) throws Exception {
         // Optimisation check 1 : check if the last expected newspaper already exists
-    	LocalDate target = LocalDate.now();
+        LocalDate target = LocalDate.now();
         while (!releaseDays.contains(target.getDayOfWeek()))
             target = target.minusDays(1L);
         if (Files.exists(fileDir.resolve(target.format(formatter)+".pdf"))) return;
@@ -149,7 +149,7 @@ public class Main
             button.click();
             return Boolean.TRUE;
         },(newPath)->{
-        	// When the browser created the complete PDF, move it then close the browser
+            // When the browser created the complete PDF, move it then close the browser
             newPath = newPath.getFileName();
             String name = newPath.toString();
             int index = name.lastIndexOf(".");
