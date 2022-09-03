@@ -10,6 +10,12 @@ import org.openqa.selenium.support.ui.*;
 
 public class Main 
 {
+	public static int
+		EXIT_SUCCESS = 0, 	// Everything is fine
+		EXIT_UNKNOWN = 1, 	// Stacktrace is printed by application
+		EXIT_ARG = 2, 		// Caller script should report a missing argument
+		EXIT_LOCATION = 3;	// Caller should report the download location doesn't exist
+	
 	private static final String SELENIUM = "org.openqa.selenium.";
     private enum BROWSER {
         CHROME((driver,download)->{
@@ -57,20 +63,22 @@ public class Main
     {
         final String driverType = loadArg(0, args), driverPath = loadArg(1, args), downloadPath = loadArg(2, args);
         if (driverPath == null || downloadPath == null) {
-            System.err.println("Missing argument");
+        	System.exit(EXIT_ARG);
             return;
         }
         Path fileDir = Paths.get(downloadPath);
         if (!Files.exists(fileDir)) {
-            System.err.println("Download location doesn't exist");
+        	System.exit(EXIT_LOCATION);
             return;
         }
         
+        int EXIT = EXIT_SUCCESS;
         BROWSER browser = BROWSER.valueOf(driverType);
         Main main = new Main();
         try { main.init(driverPath, fileDir, browser); }
-        catch (Exception e) { e.printStackTrace(); }
+        catch (Exception e) { e.printStackTrace(); EXIT = EXIT_UNKNOWN; }
         finally { main.stop(); }
+        if (EXIT != 0) System.exit(EXIT);
     }
     private static String loadArg(int index, String... args) {
         return (index < args.length) ? args[index] : null;
@@ -102,7 +110,7 @@ public class Main
     // Given a specific folder, wait to handle new files in that folder, then calls the launch function
     // If launch returns FALSE, then execution is stopped
     // Else, for each new file it is sent to the onCreation event
-    // Execution stops when onCreation returned TRUE for the number fo times equal to the amount parameter
+    // Execution stops when onCreation returned TRUE for the number of times equal to the amount parameter
     // To forcibly interrupt execution, throw a RunTimeException in onCreation
     private static boolean waitForPdfs(int amount, Path folder, Supplier<Boolean> launch, Function<Path,Boolean> onCreation) throws Exception {
         try (WatchService service = folder.getFileSystem().newWatchService()) {
@@ -110,16 +118,16 @@ public class Main
             // Start download
             if (!launch.get()) return false;
         
-               // When the browser created the complete PDF, move it then close the browser
+            // When the caller moved the complete PDF, we can close the browser
             WatchKey key;
             that_loop: while ((key = service.take()) != null) {
                 // Dequeueing events
                 for (WatchEvent<?> watchEvent : key.pollEvents()) {
                     if (watchEvent.kind() != StandardWatchEventKinds.ENTRY_CREATE) continue;
-                    Path newPath = ((WatchEvent<Path>) watchEvent).context();
-                    if (onCreation.apply(newPath) && --amount == 0) break that_loop;
+                    Path newPath = ((WatchEvent<Path>)watchEvent).context();
+                    if (onCreation.apply(newPath) && --amount <= 0) break that_loop;
                 }
-                if (!key.reset()) break;
+                if (!key.reset()) break that_loop;
             }
         }
         return true;
@@ -141,10 +149,11 @@ public class Main
             button.click();
             return Boolean.TRUE;
         },(newPath)->{
-            // Only handles completely-formed files
+        	// When the browser created the complete PDF, move it then close the browser
             newPath = newPath.getFileName();
             String name = newPath.toString();
             int index = name.lastIndexOf(".");
+            // Only handles completely-formed files
             String ext = (index < 0) ? "" : name.substring(index+1);
             if (driverType.autoExts.contains(ext)) return Boolean.FALSE;
             
