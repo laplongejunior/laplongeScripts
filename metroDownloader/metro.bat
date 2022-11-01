@@ -1,4 +1,4 @@
-java -jar "%~dp0MetroDownloader-0.0.2-SNAPSHOT.jar" "CHROME" "%~dp0drivers\chromedriver.exe" "%~dp0pdfs"
+java -jar "%~dp0MetroDownloader-0.0.2-SNAPSHOT.jar" "CHROME" "%~dp0drivers\chromedriver.exe" "%~dp0pdfs" "TRUE"
 SET "error=%ERRORLEVEL%"
 @ECHO OFF
 IF %error% EQU 0 (
