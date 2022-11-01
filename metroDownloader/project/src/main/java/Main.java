@@ -17,6 +17,9 @@ public class Main
         EXIT_LOCATION = 3;    // Caller should report the download location doesn't exist
     
     private static final String SELENIUM = "org.openqa.selenium.";
+    
+    private static boolean ENABLE_HEADLESS = true; // For debugging
+    
     private enum BROWSER {
         CHROME((driver,download)->{
             // Sets the location of the driver without needing to add it to the path
@@ -38,6 +41,9 @@ public class Main
 //                ChromeOptions options = new ChromeOptions();
                 final Class<?> chromeClass = Class.forName(PACKAGE+"ChromeOptions");
                 Object ChromeOptions = chromeClass.newInstance();
+                
+//                options.setHeadless(ENABLE_HEADLESS);
+                chromeClass.getMethod("setHeadless", Boolean.TYPE).invoke(ChromeOptions, ENABLE_HEADLESS);              
 //                options.setExperimentalOption("prefs", chromePrefs);
                 chromeClass.getMethod("setExperimentalOption", String.class, Object.class).invoke(ChromeOptions, "prefs", chromePrefs);
 //                return new ChromeDriver(options);
@@ -58,10 +64,10 @@ public class Main
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
     // During holidays there are less releases, thankfully the website provides the date of last release as well
-    private static final Set<DayOfWeek> releaseDays = new HashSet<>(Arrays.asList(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY));
+    private static final Set<DayOfWeek> releaseDays = new HashSet<>(Arrays.asList(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY));
     public static void main(String[] args)
     {
-        final String driverType = loadArg(0, args), driverPath = loadArg(1, args), downloadPath = loadArg(2, args);
+        final String driverType = loadArg(0, args), driverPath = loadArg(1, args), downloadPath = loadArg(2, args), headless = loadArg(3, args);
         if (driverPath == null || downloadPath == null) {
             System.exit(EXIT_ARG);
             return;
@@ -71,6 +77,10 @@ public class Main
             System.exit(EXIT_LOCATION);
             return;
         }
+        
+        // Headless by default
+        if (headless != null && headless.equalsIgnoreCase("FALSE"))
+        	ENABLE_HEADLESS = false;
         
         int EXIT = EXIT_SUCCESS;
         BROWSER browser = BROWSER.valueOf(driverType);
