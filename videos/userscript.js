@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name        Convenient autoplay
-// @version     0.0.3
+// @version     0.0.4
 // @description Auto-advance from one video to another
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
-// @require     https://combinatronics.com/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
+// @require     https://combinatronics.io/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
 // @match       *://*.example.org/*
 // @run-at      document-end
 // ==/UserScript==
@@ -60,11 +60,14 @@
             }
             if (!takeTheNext) return;
 
-            let href = nextVideo.href;
-            let pos = href.indexOf(separator);
-            if (pos >= 0)
-                href = href.substring(0,pos);
-            nextVideo.href = href+separator+HOST_PARAM+'='+lastHost;
+            nextVideo.addEventListener("click", e=>{
+                e.preventDefault();
+                let href = e.srcElement.href;
+                let pos = href.indexOf(separator);
+                if (pos >= 0)
+                    href = href.substring(0,pos);
+                window.location.href = href+separator+HOST_PARAM+'='+lastHost;
+            });
 
             if (redirect)
                 global.document.body.removeChild(redirect);
