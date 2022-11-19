@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Convenient autoplay
-// @version     0.0.4
+// @version     0.0.5
 // @description Auto-advance from one video to another
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -10,7 +10,7 @@
 // ==/UserScript==
 
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
-	"use strict";
+    "use strict";
 
     // To allow easy redirects
     const console = global.console;
@@ -75,11 +75,19 @@
         }
     });
 
-    let videoName = UTILS.URLcontainsParam(global.location.href, HOST_PARAM);
-    if (videoName) videoName = videoName[2];
+    let loc = window.location.href;
+    let videoName = UTILS.URLcontainsParam(loc, HOST_PARAM);
+    if (!videoName) return;
+    videoName = videoName[2];
 
-    const main = () => {
-        const videos = UTILS.querySelectorSafe(global.document.documentElement,'#content .post-wrapper');
+    const his = global.history;
+    his.replaceState(his.state, doc.title, loc.substring(0,loc.indexOf('#')) );
+    his.replaceState(his.state, doc.title, loc );
+
+    // If there's a DOM modification, schedule a new try
+    const observer = UTILS.callFunctionAfterUpdates(global, ()=>{
+        if (!videoName) return;
+        const videos = UTILS.querySelectorSafe(doc.documentElement,'#content .post-wrapper');
         if (!videos) return;
 
         let hostVideo = null;
@@ -93,8 +101,6 @@
 
         hostVideo.scrollIntoView();
         UTILS.querySelectorSafe(UTILS.querySelectorSafe(hostVideo.firstChild, 'iframe').contentWindow.document.documentElement, 'input').click();
-    };
-
-	// If there's a DOM modification, schedule a new try
-    UTILS.callFunctionAfterUpdates(global, main);
+        observer.disconnect();
+    });
 })(unsafeWindow||this);
