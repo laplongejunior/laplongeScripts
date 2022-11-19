@@ -1,1 +1,1 @@
-For hot-linking : https://combinatronics.com/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
+For hot-linking : https://combinatronics.io/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
