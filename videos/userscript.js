@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Convenient autoplay
-// @version     0.0.6
+// @version     0.0.7
 // @description Auto-advance from one video to another
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -16,7 +16,7 @@
     const console = global.console;
     const his = global.history;
     const doc = global.document;
-    
+
     const UTILS = global.laplongeUtils;
     UTILS.enableMapFindPolyfill();
 
@@ -46,11 +46,12 @@
     // Once clicked, the link will add the host parameter to the URL
     // It also means that the parameter can be changed after hooking to the link element
     const redirectedLinks = new Set();
-    const insertParam = (link)=>{
+    const insertParam = link=>{
         if (new URL(link.href).origin !== window.origin) return;
         if (redirectedLinks.has(link)) return;
         redirectedLinks.add(link);
         link.addEventListener("click", e=>{
+            if (!videoName) return;
             let target = e.target;
             while (target && !target.href) { target = target.parentElement; }
             if (!target) return;
@@ -129,5 +130,7 @@
         hostFrame.scrollIntoView();
         UTILS.querySelectorSafe(UTILS.querySelectorSafe(hostFrame.firstChild, 'iframe').contentWindow.document.documentElement, 'input').click();
         observer.disconnect();
+        // If there's suitable content but wasn't put into fullscreen, then no reason to maintain the old parameter
+        videoName = null;
     });
 })(unsafeWindow||this);
