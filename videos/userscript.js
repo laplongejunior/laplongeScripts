@@ -14,10 +14,11 @@
 
     // To allow easy redirects
     const console = global.console;
-    const UTILS = global.laplongeUtils;
     const his = global.history;
-    UTILS.enableMapFindPolyfill();
     const doc = global.document;
+    
+    const UTILS = global.laplongeUtils;
+    UTILS.enableMapFindPolyfill();
 
     // #####################
     // ### CONFIG /start ###
