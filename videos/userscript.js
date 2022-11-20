@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Convenient autoplay
-// @version     0.0.5
+// @version     0.0.6
 // @description Auto-advance from one video to another
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -15,92 +15,118 @@
     // To allow easy redirects
     const console = global.console;
     const UTILS = global.laplongeUtils;
+    const his = global.history;
     UTILS.enableMapFindPolyfill();
+    const doc = global.document;
 
     // #####################
     // ### CONFIG /start ###
     // #####################
 
+    // When redirected with client-side parameters, insert the original state so that links will be in visited state
+    const ADD_VISITED_STATE = true;
+    // Insert the host parameters in all links instead of only the next frame
+    const REDIRECT_ALL_LINKS = true;
+
     // #####################
     // #### CONFIG /end ####
     // #####################
 
+    const separator = '#', SCREEN_PARAM = "fullscreen", HOST_PARAM = "host";
+
     // Find the host of the video
-    const locateHost = (element) => {
+    const locateHost = (element)=>{
         let child = UTILS.querySelectorSafe(element,'tr');
         if (!child) return "";
         return UTILS.querySelectorSafe(child.lastChild,'titre6').lastChild.textContent.toLowerCase();
     };
 
-    const separator = '#', SCREEN_PARAM = "fullscreen", HOST_PARAM = "host";
-    let lastHost;
+    let videoName = null;
+    // Once clicked, the link will add the host parameter to the URL
+    // It also means that the parameter can be changed after hooking to the link element
+    const redirectedLinks = new Set();
+    const insertParam = (link)=>{
+        if (new URL(link.href).origin !== window.origin) return;
+        if (redirectedLinks.has(link)) return;
+        redirectedLinks.add(link);
+        link.addEventListener("click", e=>{
+            let target = e.target;
+            while (target && !target.href) { target = target.parentElement; }
+            if (!target) return;
+            const href = target.href;
+            e.preventDefault();
+            setTimeout(()=>{window.location.href = href+(href.indexOf(separator)>0 ? '&' : separator)+HOST_PARAM+'='+videoName;}, 100);
+        });
+    };
 
-    const doc = global.document;
-    let redirect = null;
-
+    let existingRedirect = false;
     doc.addEventListener("fullscreenchange", event=>{
+        // Change the next title to use as a parameter
         if (document.fullscreenElement) {
             const target = event.target;
-            if (new URL(target.src).origin !== window.origin) return;
-
-            lastHost = locateHost(target.parentElement.parentElement);
-        }
-        else {
-            const links = UTILS.querySelectorSafe(global.document.documentElement,'#sidebar .post_list .clearfix');
-            if (!links) return;
-
-            let takeTheNext = false;
-            let nextVideo = null;
-            for (const item of links.querySelectorAll(":scope > a")) {
-                if (takeTheNext) {
-                    nextVideo = item;
-                    break;
-                }
-                takeTheNext = (item.href == (location.protocol + '//' + location.host + location.pathname));
+            if (new URL(target.src).origin === window.origin) {
+                videoName = locateHost(target.parentElement.parentElement);
             }
-            if (!takeTheNext) return;
-
-            nextVideo.addEventListener("click", e=>{
-                e.preventDefault();
-                let href = e.srcElement.href;
-                let pos = href.indexOf(separator);
-                if (pos >= 0)
-                    href = href.substring(0,pos);
-                window.location.href = href+separator+HOST_PARAM+'='+lastHost;
-            });
-
-            if (redirect)
-                global.document.body.removeChild(redirect);
-            global.document.body.appendChild(redirect = UTILS.clickRedirect(nextVideo,'load next video'));
+            return;
         }
+
+        // Create a prompt to go the next link
+        if (existingRedirect) return;
+        const links = UTILS.querySelectorSafe(global.document.documentElement,'#sidebar .post_list .clearfix');
+        if (!links) return;
+
+        let takeTheNext = false;
+        let nextVideo = null;
+        for (const item of links.querySelectorAll(":scope > a")) {
+           if (takeTheNext) {
+                nextVideo = item;
+                if (!REDIRECT_ALL_LINKS) insertParam(item);
+                break;
+            }
+            takeTheNext = (item.href == (location.protocol + '//' + location.host + location.pathname));
+        }
+        if (!takeTheNext) return;
+
+        doc.body.appendChild(UTILS.clickRedirect(nextVideo,'load next video'));
+        existingRedirect = true;
     });
 
     let loc = window.location.href;
-    let videoName = UTILS.URLcontainsParam(loc, HOST_PARAM);
+    videoName = UTILS.URLcontainsParam(loc, HOST_PARAM);
     if (!videoName) return;
     videoName = videoName[2];
 
-    const his = global.history;
     his.replaceState(his.state, doc.title, loc.substring(0,loc.indexOf('#')) );
     his.replaceState(his.state, doc.title, loc );
 
+    const updateAllLinks= ()=>{
+        if (!REDIRECT_ALL_LINKS) return;
+        for (const link of doc.querySelectorAll('a')) {
+            insertParam(link);
+        }
+    };
+    updateAllLinks(); // Waiting for trigger risks delaying too much and missing a fast click from the user
+
     // If there's a DOM modification, schedule a new try
     const observer = UTILS.callFunctionAfterUpdates(global, ()=>{
+        updateAllLinks();
+
         if (!videoName) return;
         const videos = UTILS.querySelectorSafe(doc.documentElement,'#content .post-wrapper');
         if (!videos) return;
 
-        let hostVideo = null;
+        let hostFrame = null;
         for (const item of videos.firstChild.querySelectorAll(':scope > div')) {
             if (videoName == locateHost(item)) {
-                hostVideo = item;
+                hostFrame = item;
                 break;
             }
         }
-        if (!hostVideo) return;
+        if (!hostFrame) return;
 
-        hostVideo.scrollIntoView();
-        UTILS.querySelectorSafe(UTILS.querySelectorSafe(hostVideo.firstChild, 'iframe').contentWindow.document.documentElement, 'input').click();
+        // If not on a hosted page, observer stay running to hook into various dynamic link
+        hostFrame.scrollIntoView();
+        UTILS.querySelectorSafe(UTILS.querySelectorSafe(hostFrame.firstChild, 'iframe').contentWindow.document.documentElement, 'input').click();
         observer.disconnect();
     });
 })(unsafeWindow||this);
