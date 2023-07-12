@@ -105,6 +105,7 @@
             if (isElementSFW(UTILS.querySelectorSafe(data,".channelCard .username"))) return;
 
             // Shortcircuits the first click to remove the blur effect
+		// TODO : Rather than plain removal, reset to former style would be more generic
             var handler = event=>{
                 container.removeEventListener("click", handler);
                 event.stopPropagation();
@@ -117,6 +118,7 @@
             // The platform replaces thumbs by video segments when moused over
             // In those cases, blurring the parent is the sanest way
             if (item.classList.contains("js-videoPreview")) item = container;
+		// TODO : Add the blur rather than plain overwrite
             item.style.filter='blur(10px)';
         };
 
