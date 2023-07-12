@@ -17,11 +17,21 @@
 
     const SFW_CREATORS = ['inlacrimaelacrima', 'tastyfps'];
     // Not implemented yet
+	// TODO : Will list unfiltered videos from usually filtered creators
     // const SFW_VIDEOS = [];
+	// TODO : Will list filtered videos from usually unfiltered creators
+	// const BLOCKED_VIDEO = [];
 
     // #####################
     // #### CONFIG /end ####
     // #####################
+
+	/*
+ Todo summary
+ CRITICAL : Fix the filter for subscription notifications on a channel page
+       Corrolary, define new rules to determine when content on a channel page is not directly controlled by the channel's owner
+ MISSING : The filter is all about creators specifically with no rule system for specific videos
+  */
 
     const _querySelectorAll = Element.prototype.querySelectorAll;
     global.laplongeUtils = {
@@ -54,6 +64,8 @@
     const console = global.console;
     const UTILS = global.laplongeUtils;
 
+	// TODO : As-is, a unfiltered creator can show explicit previews by linking to content made by another creator
+	// For example, the subcription notification will SHOW the channel's profile picture!
     const isElementSFW = element=>{
         if (!element) return false;
         let href = element.href;
@@ -68,6 +80,7 @@
     // While on a SFW page, it's saner to not edit the main content
     if (isElementSFW(global.location)) doc = UTILS.querySelectorSafe(doc, "#header");
 
+	// TODO : Badly named, change to processed?
     let censored = [];
 
     // Where we do the bulk of the work
@@ -80,8 +93,15 @@
             let container = item.parentElement;
 
             let data = container.parentElement.parentElement;
-            if (isElementSFW(UTILS.querySelectorSafe(data,".channelCard .username"))) return;
+
+		
             if (isElementSFW(UTILS.querySelectorSafe(data,".videoUploaderBlock .usernameWrap a"))) return;
+		
+		// TODO: Determining the channel space's owner with channelCard is not enough to know who is in charge of the content
+		// For example, a subscription notification is initiated by channel A, but the profile picture in it is in control of channel B
+		// The current code will apply filtering based on the status of A, when it should be determined on the status of B
+            if (isElementSFW(UTILS.querySelectorSafe(data,".channelCard .username")))
+		    return;
 
             // Shortcircuits the first click to remove the blur effect
             var handler = event=>{
