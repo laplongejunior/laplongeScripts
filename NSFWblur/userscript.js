@@ -78,13 +78,19 @@
     };
     let doc = global.document.body;
     // While on a SFW page, it's saner to not edit the main content
+
+        // TODO: Determining the channel space's owner with channelCard is not enough to know who is in charge of the content
+	// For example, a subscription notification is initiated by channel A, but the profile picture in it is in control of channel B
+	// The current code will apply filtering based on the status of A, when it should be determined on the status of B
     if (isElementSFW(global.location)) doc = UTILS.querySelectorSafe(doc, "#header");
 
 	// TODO : Badly named, change to processed?
     let censored = [];
 
     // Where we do the bulk of the work
+        // TODO : Add a rule on channel to still censor subscription notification
     const userCheck = () => {
+	// TODO : Move censorImage to avoid recreating on each update
         let censorImage = item=>{
             // Skips the platform's logo
             if (!item || item.title === "Pornhub" || censored.includes(item)) return;
@@ -96,12 +102,7 @@
 
 		
             if (isElementSFW(UTILS.querySelectorSafe(data,".videoUploaderBlock .usernameWrap a"))) return;
-		
-		// TODO: Determining the channel space's owner with channelCard is not enough to know who is in charge of the content
-		// For example, a subscription notification is initiated by channel A, but the profile picture in it is in control of channel B
-		// The current code will apply filtering based on the status of A, when it should be determined on the status of B
-            if (isElementSFW(UTILS.querySelectorSafe(data,".channelCard .username")))
-		    return;
+            if (isElementSFW(UTILS.querySelectorSafe(data,".channelCard .username"))) return;
 
             // Shortcircuits the first click to remove the blur effect
             var handler = event=>{
