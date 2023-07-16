@@ -67,6 +67,15 @@ global.laplongeUtils = {
         return triggerArea;
     },
 
+    // Variant of callFunctionAfterUpdates which DOESN'T temporarize
+    // Useful for functions where instantaneous effects are important like a blur effect
+    runFunctionAfterUpdates: (doc, callback) => {
+        let observer = new MutationObserver(callback);
+        observer.observe(doc, { childList: true, subtree: true });
+        // Make the callback believes it's an update
+        callback();
+        return observer;
+    },
     // Basically, calls callback once, then recalls it everytime there's a new node
     // We use win instead of "window" because this function must also work with the data-resolution popup
     callFunctionAfterUpdates: (win, callback) => {
