@@ -4,7 +4,7 @@
 // @description Add the name of a content creator inside the URL, to allow adblocker whitelisting
 // @author      laplongejunior
 // @license     https://www.gnu.org/licenses/agpl-3.0.fr.html
-// @require     https://combinatronics.com/laplongejunior/laplongeScripts/main/utilityLib/laplongeLib.js
+// @require     https://cdn.jsdelivr.net/gh/laplongejunior/laplongeScripts/utilityLib/laplongeLib.js
 // @match       *://*.youtube.com/*
 // @match       *://*.twitch.tv/*
 // @grant       GM.setValue
