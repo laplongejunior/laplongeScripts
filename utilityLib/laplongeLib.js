@@ -126,6 +126,12 @@ global.laplongeUtils = {
             callback(xhr.status === 200 ? JSON.parse(xhr.response) : null);
         };
         xhr.send();
+    },
+    lowerCaseArray: (array) => {
+        const result = [];
+        for (let item of array)
+		result.push(item.toLowerCase());
+        return result;
     }
 };
 })(unsafeWindow||this);
