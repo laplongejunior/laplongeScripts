@@ -23,7 +23,7 @@
 	// #####################
 
 	const SFW_CREATORS = [];
-	for (let name of ['inlacrimaelacrima', /*'balrogvt', 'laplongejunior',*/ 'tastyfps']) {
+	for (let name of ['inlacrimaelacrima'/*, 'balrogvt', 'laplongejunior'*/]) {
 		SFW_CREATORS.push(name.toLowerCase()); // Used for URL matching
 	}
 	// Not implemented yet
