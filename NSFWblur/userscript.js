@@ -71,7 +71,6 @@
 		if (!element) return false;
 		let href = element.href;
 		if (!href) return false;
-		console.warn(href);
 		const parts = href.split("/");
 		for (let i = 0; i < parts.length-1; i++) {
 			const part = parts[i];
