@@ -1,6 +1,7 @@
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 "use strict";
-const _querySelectorAll = Element.prototype.querySelectorAll;
+const _eleQuerySelectorAll = Element.prototype.querySelectorAll;
+const _docQuerySelectorAll = Document.prototype.querySelectorAll;
 
 global.laplongeUtils = {
 	// Polyfill
@@ -101,7 +102,7 @@ global.laplongeUtils = {
     // Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
     // As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
     querySelectorSafe: function(element, selector) {
-      const result = _querySelectorAll.call(element, selector);
+      const result = (element instanceof Document ? _docQuerySelectorAll : _eleQuerySelectorAll).call(element, selector);
       if (result.length == 1) return result.item(0);
       if (result.length > 1) {
         global.console.warn("Several matches found for querySelector! Discarding...");
