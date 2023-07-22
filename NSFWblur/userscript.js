@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name		Adult platforms NSFW blur
-// @version		0.0.2
+// @version		0.0.3
 // @description	When looking watching SFW content on NSFW platforms, blurs recommendations for NSFW content. !WON'T AFFECT ADS!
 // @author		laplongejunior
 // @license		https://www.gnu.org/licenses/agpl-3.0.fr.html
@@ -14,29 +14,28 @@
 (function(global) { // I prefer getting the global object with "this" rather than using the name 'window', personal taste
 	"use strict";
 
-	// BUGS :
-	// sublist is always blurred no matter if the person featured is WL
-	// Lacrima's videos are blurred in her video list
-
 	// #####################
 	// ### CONFIG /start ###
 	// #####################
 
-	const SFW_CREATORS = [];
-	for (let name of ['inlacrimaelacrima'/*, 'balrogvt', 'laplongejunior'*/]) {
-		SFW_CREATORS.push(name.toLowerCase()); // Used for URL matching
-	}
+	let SFW_CREATORS = ['inlacrimaelacrima', /*'balrogvt', 'laplongejunior',*/ 'tastyfps', 'bricehere'];
+
 	// Not implemented yet
-	// TODO : Will list unfiltered videos from usually filtered creators
-	// const SFW_VIDEOS = [];
-	// TODO : Will list filtered videos from usually unfiltered creators
-	// const BLOCKED_VIDEO = [];
+	// Example video : indigowhite's video about emotional support (thumbnail is kinda SFW)
+	let ALLOWED_VIDEOS = ['647276b354344'];
+	// Example video : tastyfps's showing 235 kills, as the thumbnail shows the Guiness World Record's logo, ew! ( ;D )
+	let BLOCKED_VIDEOS = ['ph63af5cd06d2cf'];
 
 	// #####################
 	// #### CONFIG /end ####
 	// #####################
 
-	const _querySelectorAll = Element.prototype.querySelectorAll;
+	// #####################################
+	// #### Lib replacement starts here ####
+	// #####################################
+
+	const _eleQuerySelectorAll = Element.prototype.querySelectorAll;
+	const _docQuerySelectorAll = Document.prototype.querySelectorAll;
 	global.laplongeUtils = {
 		// Basically, calls callback once, then recalls it everytime there's a new node
 		// We use win instead of "window" because this function must also work with the data-resolution popup
@@ -52,24 +51,45 @@
 		// querySelector should only be used for cases intended for a single match
 		// Sometimes, Youtube doesn't correctly clear the webpage leading to the "first" result not being the unique result on screen
 		// As a security, this polyfill makes it so that querySelector returns null in case of multiple matches
-		querySelectorSafe: function(element, selector) {
-			const result = _querySelectorAll.call(element, selector);
+		querySelectorSafe: (element, selector) => {
+			const result = (element instanceof Document ? _docQuerySelectorAll : _eleQuerySelectorAll).call(element, selector);
 			if (result.length == 1) return result.item(0);
 			if (result.length > 1) {
 				global.console.warn("Several matches found for querySelector! Discarding...");
 				global.console.warn(result);
 			}
 			return null;
+		},
+
+		lowerCaseArray: (array) => {
+			const result = [];
+			for (let item of array) result.push(item.toLowerCase());
+			return result;
+		},
+
+		URLcontainsParam: (url, ...names) => {
+			let params = "";
+			for (const name of names) params += "|" + name;
+			return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
 		}
 	};
+
+	// ############################################
+	// #### Actual scripting stuff starts here ####
+	// ############################################
 
 	// To allow easy redirects
 	const console = global.console;
 	const UTILS = global.laplongeUtils;
 
-	const isElementSFW = element=>{
+	// Used for URL matching
+	SFW_CREATORS = UTILS.lowerCaseArray(SFW_CREATORS);
+	ALLOWED_VIDEOS = UTILS.lowerCaseArray(ALLOWED_VIDEOS);
+	BLOCKED_VIDEOS = UTILS.lowerCaseArray(BLOCKED_VIDEOS);
+
+	const isCreatorSFW = element=>{
 		if (!element) return false;
-		let href = element.href;
+		const href = element.href;
 		if (!href) return false;
 		const parts = href.split("/");
 		for (let i = 0; i < parts.length-1; i++) {
@@ -78,14 +98,24 @@
 		}
 		return false;
 	};
-
-	let doc = global.document;
-
-	// While on a SFW page, it's saner to not edit the main content
+	const isContentAllowed = element=>{
+		if (!element) return null;
+		const href = element.href;
+		if (!href) return null;
+		const paramName = "viewkey";
+		const params = UTILS.URLcontainsParam(href, paramName);
+		if (!params) return null;
+		if (params[1] === paramName) {
+			const id = params[2];
+			if (ALLOWED_VIDEOS.includes(id)) return true;
+			if (BLOCKED_VIDEOS.includes(id)) return false;
+		}
+		return null;
+	};
 
 	// Note that determining the channel space's owner with channelCard is not enough to know who is in charge of the content
 	// For example, a subscription notification is initiated by channel A, but the profile picture in it is in control of channel B
-	let SFWcreator = isElementSFW(global.location);
+	let SFWcreator = isCreatorSFW(global.location);
 
 	let processed = [];
 	// Because checking specific elements is hard, it's possible we'll try to blur a specific picture after whitelisting an entire group of pictures
@@ -108,25 +138,25 @@
 		// Don't run checks for the content foundby rules that always need to be censored
 		// A small optimisation that makes testing a whole lot easier :)
 		if (SFWcheck) {
+			// Check the video itself and not only the uploader
+			const detection = isContentAllowed(container);
+			if (detection === true) return false;
+			if (detection !== false) {
+				// Creators-only : ignore SFW avatar pictures
+				if (isCreatorSFW(container)) return false;
+				// Also exclude the picture from the infotip when we mouse over a small avatar picture
+				if (isCreatorSFW(UTILS.querySelectorSafe(container,".username"))) return false;
 
-			// Creators-only : ignore SFW avatar pictures
-			if (isElementSFW(container)) return false;
-			// Also exclude the picture from the infotip when we mouse over a small avatar picture
-			if (isElementSFW(UTILS.querySelectorSafe(container,".username"))) return false;
+				let data = container.parentElement.parentElement;
 
-			let data = container.parentElement.parentElement;
+				// Ignore videos made by SFW-creators
+				if (isCreatorSFW(UTILS.querySelectorSafe(data,".videoUploaderBlock .usernameWrap a"))) return false;
 
-			// Ignore videos made by SFW-creators
-			// TODO: Check the video itself and not only the uploader
-			if (isElementSFW(UTILS.querySelectorSafe(data,".videoUploaderBlock .usernameWrap a"))) return false;
-
-			//if (isElementSFW(UTILS.querySelectorSafe(data,".channelCard .username"))) return;
-
-			// Creators-only : ignore upload notification
-			if (SFWcreator) {
-				const tableSection = data.parentElement.parentElement;
-				if (tableSection.id === "videosUploadedSection" || tableSection.id === "modelMostRecentVideosSection")
-					return false;
+				// Creators-only : ignore upload notification
+				if (SFWcreator) {
+					const tableSection = data.parentElement.parentElement;
+					if (tableSection.id === "videosUploadedSection" || tableSection.id === "modelMostRecentVideosSection") return false;
+				}
 			}
 		}
 
@@ -135,8 +165,8 @@
 		if (item.classList.contains("js-videoPreview")) item = container;
 
 		const oldFilter = item.style.filter;
-		if (item.style.filter.includes("blur")) {
-			console.error("An item is already blurred");
+		if (item.style.filter.includes('blur')) {
+			console.error('An item is already blurred');
 			console.error(item);
 			return false;
 		}
@@ -144,50 +174,51 @@
 		item.style.filter += ' blur(10px)';
 
 		// Shortcircuits the first click to remove the blur effect
+		const eventType = 'click';
 		const handler = event=>{
-			container.removeEventListener("click", handler);
+			container.removeEventListener(eventType, handler);
+			item.style.filter=oldFilter;
+			console.info('Click has been performed to unblur an element');
+			console.info(item);
+
 			event.stopPropagation();
 			event.preventDefault();
-			item.style.filter=oldFilter;
-			console.info("Click has been performed to unblur an element");
-			console.info(item);
 			return false;
 		};
-		container.addEventListener("click", handler);
+		container.addEventListener(eventType, handler);
 		return true;
 	};
 
 	// Where we do the bulk of the work
 	// It runs on each visual update and it's job is to identify what parts of the page needs to be checked by the censor method
-	const userCheck = ()=> {
+	const userCheck = (doc)=> {
 		// Detection in album page
 		// Can't be performed earlier because the page wasn't loaded yet
 		if (!SFWcreator) {
-			var album = document.getElementById("profileBoxPhotoAlbum");
-			if (album && isElementSFW(UTILS.querySelectorSafe(album, ".usernameLink")))
-				SFWcreator = true;
+			// Can't use getElementById because "doc" can sometimes be a section to optimise lookups
+			var album = UTILS.querySelectorSafe(doc, "#profileBoxPhotoAlbum");
+			if (album && isCreatorSFW(UTILS.querySelectorSafe(album, ".usernameLink"))) SFWcreator = true;
 		}
 
 		const withCheck = item=>censorImage(item,true); // Either blurs the target or make it exempted if SFW content
-		const forcedCensor = item=>censorImage(item,false); // Always blurs the target
+		const forcedCensor = item=>censorImage(item,false); // ALWAYS blurs the target (if it wasn't already processed earlier)
 
-		// Before blocking all animated thumbnails, we first need to exclude the "all videos from this creator" on the model page
-		// Each individual video, ofc, won't link to the creator in that case
-		if (SFWcreator) {
-			doc.querySelectorAll(".profileVids").forEach(item=>processed.push(item));
-		}
+		// Before blocking all animated thumbnails, we first need to exclude the "all videos from this creator" section on the model page
+		// Each individual video, ofc, won't link to the creator in that case because all videos on that page are from the same creator
+		// Ofc, we need to "exclude from the exclusion" videos that are on the NSFW blocklist
+		if (SFWcreator) doc.querySelectorAll(".profileVids .linkVideoThumb").forEach(item=>{if (isContentAllowed(item)!==false) processed.push(item)});
 
 		// Most recommendations could be checked by this simple rule
 		//doc.querySelectorAll(".wrap .phimage img").forEach(withCheck);
 		// For the weird mixed-playlists in the categories header
 		// Sadly it only really works in forcedCensor mode if the previous rule already ran
-		doc.querySelectorAll(".js-videoThumb").forEach(withCheck);
+		Array.from(doc.getElementsByClassName("js-videoThumb")).forEach(withCheck);
 
 		// Censors the avatar pictures
-		doc.querySelectorAll(".avatarTrigger").forEach(withCheck); // Album page
-		doc.querySelectorAll(".avatarIcon").forEach(withCheck);	// Model page
-		doc.querySelectorAll(".avatarPornStar").forEach(withCheck);// Subs to star
-		doc.querySelectorAll(".avatarCover").forEach(withCheck);   // Tooltip banner
+		Array.from(doc.getElementsByClassName("avatarTrigger")).forEach(withCheck);		// Album page
+		Array.from(doc.getElementsByClassName("avatarIcon")).forEach(withCheck);		// Model page
+		Array.from(doc.getElementsByClassName("avatarPornStar")).forEach(withCheck);	// Subs to star
+		Array.from(doc.getElementsByClassName("avatarCover")).forEach(withCheck);		// Tooltip banner
 
 		// Banner of creator pages
 		if (!SFWcreator) {
@@ -197,16 +228,15 @@
 			doc.querySelectorAll("#topProfileHeader img").forEach(withCheck);
 
 			// Filter banner and avatar when a channel is feature in search results
-			doc.querySelectorAll("#coverPictureDefault").forEach(withCheck);
+			withCheck(UTILS.querySelectorSafe(doc, "#coverPictureDefault"));
 			doc.querySelectorAll(".avatar img").forEach(withCheck);
 
 			// Static photo categories are set as background image which brings two issues :
 			// 1) They avoid the img tag detection because of the lack of a dedicated tag
 			// 2) Blurring the responsible element causes to blur its *children* as well
 			// There's no styling way to "blur a parent only" (besides fixing their rendering structure so we'll have to rely on the "click to unblur" system
-			doc.querySelectorAll(".js_lazy_bkg").forEach(item=>{
-				if (forcedCensor(item))
-					console.warn("An element has been blurred due to background-image rule");
+			Array.from(doc.getElementsByClassName("js_lazy_bkg")).forEach(item=>{
+				if (forcedCensor(item)) console.warn('An element has been blurred due to background-image rule');
 			});
 		}
 
@@ -219,17 +249,16 @@
 	};
 
 	// If there's a DOM modification, schedule a new try
-
-	let observer = UTILS.runFunctionAfterUpdates(doc, ()=>{
+	let observer = UTILS.runFunctionAfterUpdates(global.document, ()=>{
+		let doc = global.document;
 		let body = doc.body;
 		// document-start means body doesn't exist yet, so we'll precise the trigger at runtime
 		if (!body) {
-			userCheck();
+			userCheck(doc);
 			return;
 		}
 		observer.disconnect();
-		doc = body;
-		UTILS.runFunctionAfterUpdates(doc, userCheck);
+		UTILS.runFunctionAfterUpdates(body, ()=>userCheck(body));
 	});
 
 })(unsafeWindow||this);
