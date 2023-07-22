@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name		Adult platforms NSFW blur
 // @version		0.0.3
-// @description	When looking watching SFW content on NSFW platforms, blurs recommendations for NSFW content. !WON'T AFFECT ADS!
+// @description		When looking watching SFW content on NSFW platforms, blurs recommendations for NSFW content. !WON'T AFFECT ADS!
 // @author		laplongejunior
 // @license		https://www.gnu.org/licenses/agpl-3.0.fr.html
 // @match		https://*.pornhub.com/*
