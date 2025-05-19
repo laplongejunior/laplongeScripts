@@ -3,7 +3,7 @@
 // @version      0.0.1
 // @description  Adds creator's currency on patreon campaign pages
 // @author       laplongejunior
-// @license		 https://www.gnu.org/licenses/agpl-3.0.fr.html
+// @license      https://www.gnu.org/licenses/agpl-3.0.fr.html
 // @match        https://www.patreon.com/*
 // @run-at       document-start
 // ==/UserScript==
