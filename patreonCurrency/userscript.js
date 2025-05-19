@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         Patreon currency finder
-// @namespace    http://tampermonkey.net/
-// @version      2025-05-18
+// @version      0.0.1
 // @description  Adds creator's currency on patreon campaign pages
-// @author       laplongejr
+// @author       laplongejunior
+// @license		 https://www.gnu.org/licenses/agpl-3.0.fr.html
 // @match        https://www.patreon.com/*
-// @grant        none
 // @run-at       document-start
 // ==/UserScript==
 
