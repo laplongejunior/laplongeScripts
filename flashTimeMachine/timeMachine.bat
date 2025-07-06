@@ -14,13 +14,13 @@ SET "KEYBOARD=qwertyFix.txt"
 
 REM Actual script starts here
 SET "OriginDir=%~dp0"
-SET "Link=%OriginDir%DA-hardlink.exe"
+SET "Link=%OriginDir%game-hardlink.exe"
 SET "Flag=%OriginDir%%KEYBOARD%"
 IF EXIST "%Link%" ( DEL "%Link%" )
 IF EXIST "%Flag%" ( DEL "%Flag%" )
 
 FOR %%f IN ("%OriginDir:~0,-1%") DO SET "CurrentDir=%%~dpfversions\"
-ECHO Folders contained in Divine Arms folder ( %CurrentDir% )
+ECHO Folders contained in game folder ( %CurrentDir% )
 FOR /d %%f IN ("%CurrentDir%*") DO ECHO %%~nxf
 
 SET /p Version="Enter version folder: "
