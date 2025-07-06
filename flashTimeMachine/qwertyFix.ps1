@@ -9,7 +9,7 @@ if ($flag) {
 	$temp.Insert(0, "en-US")
 	Set-WinUserLanguageList -LanguageList $temp -Force
 }
-Start-Process $PSScriptRoot"\DA-hardlink.exe" -Wait
+Start-Process $PSScriptRoot"\game-hardlink.exe" -Wait
 if ($flag) {
 	Set-WinUserLanguageList -LanguageList $lang -Force
 }
