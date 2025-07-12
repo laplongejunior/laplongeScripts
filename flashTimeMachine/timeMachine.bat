@@ -30,6 +30,7 @@ SET "KEYBOARD=%CurrentDir%%KEYBOARD%"
 FOR %%f IN ("%CurrentDir%*.exe") DO SET "Target=%%f"
 IF NOT DEFINED Target (
 	ECHO "Error: no exe in folder"
+	PAUSE
 	EXIT 1
 ) 
 MKLINK /H "%Link%" "%Target%"
