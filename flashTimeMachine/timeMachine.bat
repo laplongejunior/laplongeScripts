@@ -28,7 +28,6 @@ SET "CurrentDir=%CurrentDir%%Version%\"
 SET "KEYBOARD=%CurrentDir%%KEYBOARD%"
 
 FOR %%f IN ("%CurrentDir%*.exe") DO SET "Target=%%f"
-SET "Check=%CurrentDir%qwertyFix.txt"
 IF NOT DEFINED Target (
 	ECHO "Error: no exe in folder"
 	EXIT 1
