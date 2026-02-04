@@ -12,21 +12,6 @@ $pills = True
 
 $winHandle = SteamCheck("Buckshot Roulette.exe", $WINTITLE, $STEAMID, 10000)
 
-;Sleep(2000)
-;WinSetState($WINTITLE, "", @SW_MAXIMIZE)
-;SetupGame()
-
-;Debug2(930, 690) ; 485, 665 ; 484, 666
-;Debug2(590, 640) ; 309, 618 ; 301, 618
-;Debug2(550, 760) ; 288, 733 ; 280, 733
-;Debug2(1160, 520) ; 603, 504 ; 607, 504
-;Debug2(250, 480) ; 133, 466 ; 119, 466
-;Debug2(950, 300) ; 495, 294 ; 495, 294
-;Debug2(1160, 470) ; 603, 456 ; 607, 456
-;Debug2(1140, 230) ; 593, 227 ; 597, 227
-;Debug2(1170, 530) ; 608, 513 ; 613, 513
-;Debug2(1340, 340) ; 696, 332 ; 704, 332
-
 While WinWait($WINTITLE, "", 1)
 	If WinActive($winHandle) Then
 		HotKeySet("{Enter}", "SetupGame")
@@ -37,19 +22,6 @@ While WinWait($WINTITLE, "", 1)
 WEnd
 HotKeySet("{Enter}", "")
 Exit(0)
-
-;Func TestWindowFunc()
-;	MsgBox(0, "Test", WinActive($winHandle) & ":" &  WinGetState($winHandle), 10)
-;EndFunc
-;Func Debug()
-;	$temp = MouseGetPos()
-;	MsgBox(0, "Test", "Current mouse pos:" & $temp[0] & ":" & $temp[1], 10)
-;EndFunc
-;Func Debug2($x, $y)
-;	$posX = RevertPos($x, 0)
-;	$posY = RevertPos($y, 1)
-;	MsgBox(0, "Test", $x&":"& $y & " = " & $posX&":"&$posY)
-;EndFunc
 
 Func SetupGame()
 	If Not WinActive($winHandle) Then Return 0
@@ -181,4 +153,5 @@ Func GetBoxedScreen($screen, $ratio)
 	Next
 
 	Return $corrected
+
 EndFunc
