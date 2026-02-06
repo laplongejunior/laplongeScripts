@@ -1,7 +1,9 @@
 #include <AutoItConstants.au3>
 ;$MOUSE_CLICK_LEFT = "left"
 ;$WIN_STATE_MAXIMIZED = 32
-AutoItSetOption("WinTitleMatchMode",3)
+;$OPT_MATCHEXACT = 3
+AutoItSetOption("WinTitleMatchMode",$OPT_MATCHEXACT)
+$PRECISION = 1000 ; Pos arguments are in 1/1000 of window size
 
 $WINTITLE = "Buckshot Roulette"
 $STEAMID = "2835570"
@@ -97,7 +99,6 @@ Func ComputeY($percent, $screen=Default)
     Return ComputePos($percent, 1, $screen)
 EndFunc
 
-$PRECISION = 1000
 Func ComputePos($ratio, $axis, $screen=Default)
 	If $screen = Default Then $screen = GetBoxedScreen(WinGetPos($WINTITLE), $FIXEDRATIO)
 	Return $ratio * $screen[2+$axis]/$PRECISION + $screen[$axis]
@@ -155,3 +156,4 @@ Func GetBoxedScreen($screen, $ratio)
 	Return $corrected
 
 EndFunc
+
