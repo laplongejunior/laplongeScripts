@@ -18,7 +18,7 @@ While WinWait($WINTITLE, "", 1)
 	If WinActive($winHandle) Then
 		HotKeySet("{Enter}", "SetupGame")
 	Else
-		HotKeySet("{Enter}", "")
+		HotKeySet("{Enter}")
 	EndIf
 	Sleep(1000)
 WEnd
@@ -156,4 +156,5 @@ Func GetBoxedScreen($screen, $ratio)
 	Return $corrected
 
 EndFunc
+
 
