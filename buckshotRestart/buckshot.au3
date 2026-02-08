@@ -11,7 +11,6 @@ $STEAMID = "2835570"
 $FIXEDRATIO = 16/9
 
 $LOADING = 10 ; Loads in 10s on my machine, can take longer to other people
-
 $pills = True ; Trigger endless mode?
 
 $winHandle = SteamCheck("Buckshot Roulette.exe", $WINTITLE, $STEAMID, 10000)
@@ -162,4 +161,5 @@ Func GetBoxedScreen($screen, $ratio)
 
 	Return $corrected
 EndFunc
+
 
