@@ -3,15 +3,16 @@
 ;$WIN_STATE_MAXIMIZED = 32
 ;$OPT_MATCHEXACT = 3
 AutoItSetOption("WinTitleMatchMode",$OPT_MATCHEXACT)
+
 $PRECISION = 1000 ; Pos arguments are in 1/1000 of window size
-$LOADING - 10 ; Loads in 10s on my machine, can take longer to other people
 
 $WINTITLE = "Buckshot Roulette"
 $STEAMID = "2835570"
 $FIXEDRATIO = 16/9
 
-; Trigger endless mode?
-$pills = True
+$LOADING = 10 ; Loads in 10s on my machine, can take longer to other people
+
+$pills = True ; Trigger endless mode?
 
 $winHandle = SteamCheck("Buckshot Roulette.exe", $WINTITLE, $STEAMID, 10000)
 
@@ -161,3 +162,4 @@ Func GetBoxedScreen($screen, $ratio)
 
 	Return $corrected
 EndFunc
+
