@@ -4,6 +4,7 @@
 ;$OPT_MATCHEXACT = 3
 AutoItSetOption("WinTitleMatchMode",$OPT_MATCHEXACT)
 $PRECISION = 1000 ; Pos arguments are in 1/1000 of window size
+$LOADING - 10 ; Loads in 10s on my machine, can take longer to other people
 
 $WINTITLE = "Buckshot Roulette"
 $STEAMID = "2835570"
@@ -22,8 +23,12 @@ While WinWait($WINTITLE, "", 1)
 	EndIf
 	Sleep(1000)
 WEnd
-HotKeySet("{Enter}", "")
+HotKeySet("{Enter}")
 Exit(0)
+
+;Func Debug()
+;	MsgBox(0, "Test", RevertPos(MouseGetPos(0),0) &":"& RevertPos(MouseGetPos(1),1) ) 
+;EndFunc
 
 Func SetupGame()
 	If Not WinActive($winHandle) Then Return 0
@@ -33,16 +38,16 @@ Func SetupGame()
 		RatioClick(484, 666)
 		Sleep($stateWait)
 		WinSetState($WINTITLE, "", @SW_MAXIMIZE)
-		Sleep(10000-$stateWait)
+		Sleep(($LOADING*1000)-$stateWait)
 	EndIf
 	If $pills Then
 		TriggerEndless(301, 618)
 		RatioMove(607, 504)
-		Sleep(4000)
+		SleepCheck(4000)
 	EndIf
 	MeetDealer(607, 504)
 	RatioMove(607, 456)
-	Sleep(3000)
+	SleepCheck(3000)
 	EnterName(607, 456)
 EndFunc
 
@@ -69,7 +74,7 @@ EndFunc
 Func VolumeMouse($volTimer, $sleep, $x, $y, $click=Default)
 	Sleep($volTimer)
 	; WARNING: Will *restore* sound temporarily if the settings were naturally on mute
-	Send("{VOLUME_MUTE}")
+	If WinActive($winHandle) Then Send("{VOLUME_MUTE}")
 	AnimMouse($sleep-$volTimer, $x, $y, $click)
 EndFunc
 ; High-speed mouse movement doesn't seem to work well in UIs with custom pointer
@@ -77,19 +82,20 @@ EndFunc
 Func AnimMouse($sleep, $x, $y, $click=Default)
 	If $click = Default Then $click = $MOUSE_CLICK_LEFT
 	RatioMove($x, $y)
-	Sleep($sleep)
+	SleepCheck($sleep)
 	RatioClick($x, $y, $click)
 EndFunc
 
 ; Instead of hardcoded coords, all mouse interations will use a % from the window size
 Func RatioClick($x, $y, $click=Default, $screen=Default)
 	If $click = Default Then $click = $MOUSE_CLICK_LEFT
-	If Not WinActive($WINTITLE) Then Return 0
-	MouseClick($click, ComputeX($x, $screen), ComputeY($y, $screen))
+	If WinActive($WINTITLE) Then MouseClick($click, ComputeX($x, $screen), ComputeY($y, $screen))
 EndFunc
 Func RatioMove($x, $y, $screen=Default)
-	If Not WinActive($WINTITLE) Then Return 0
-	MouseMove(ComputeX($x, $screen), ComputeY($y, $screen))
+	If WinActive($WINTITLE) Then MouseMove(ComputeX($x, $screen), ComputeY($y, $screen))
+EndFunc
+Func SleepCheck($sleep)
+	If WinActive($winHandle) Then Sleep($sleep)
 EndFunc
 
 Func ComputeX($percent, $screen=Default)
@@ -154,7 +160,4 @@ Func GetBoxedScreen($screen, $ratio)
 	Next
 
 	Return $corrected
-
 EndFunc
-
-
