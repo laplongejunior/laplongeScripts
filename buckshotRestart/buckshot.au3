@@ -10,7 +10,7 @@ $WINTITLE = "Buckshot Roulette"
 $STEAMID = "2835570"
 $FIXEDRATIO = 16/9
 
-$LOADING = 10 ; Loads in 10s on my machine, can take longer to other people
+$LOADTIME = 10 ; Loads in 10s on my machine, can take longer to other people
 $pills = True ; Trigger endless mode?
 
 $winHandle = SteamCheck("Buckshot Roulette.exe", $WINTITLE, $STEAMID, 10000)
@@ -38,7 +38,7 @@ Func SetupGame()
 		RatioClick(484, 666)
 		Sleep($stateWait)
 		WinSetState($WINTITLE, "", @SW_MAXIMIZE)
-		Sleep(($LOADING*1000)-$stateWait)
+		Sleep(($LOADTIME*1000)-$stateWait)
 	EndIf
 	If $pills Then
 		TriggerEndless(301, 618)
@@ -161,5 +161,6 @@ Func GetBoxedScreen($screen, $ratio)
 
 	Return $corrected
 EndFunc
+
 
 
