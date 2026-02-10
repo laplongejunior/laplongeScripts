@@ -16,7 +16,7 @@ $pills = True ; Trigger endless mode?
 $winHandle = SteamCheck("Buckshot Roulette.exe", $WINTITLE, $STEAMID, 10000)
 
 While WinWait($WINTITLE, "", 1)
-	If WinActive($winHandle) Then
+	If WinActive($WINTITLE) Then
 		HotKeySet("{Enter}", "SetupGame")
 	Else
 		HotKeySet("{Enter}")
@@ -31,7 +31,7 @@ Exit(0)
 ;EndFunc
 
 Func SetupGame()
-	If Not WinActive($winHandle) Then Return 0
+	If Not WinActive($WINTITLE) Then Return 0
 	
 	If Not BitAND(WinGetState($winHandle), $WIN_STATE_MAXIMIZED) Then
 		$stateWait = 2000
@@ -74,7 +74,7 @@ EndFunc
 Func VolumeMouse($volTimer, $sleep, $x, $y, $click=Default)
 	Sleep($volTimer)
 	; WARNING: Will *restore* sound temporarily if the settings were naturally on mute
-	If WinActive($winHandle) Then Send("{VOLUME_MUTE}")
+	If WinActive($WINTITLE) Then Send("{VOLUME_MUTE}")
 	AnimMouse($sleep-$volTimer, $x, $y, $click)
 EndFunc
 ; High-speed mouse movement doesn't seem to work well in UIs with custom pointer
@@ -95,7 +95,7 @@ Func RatioMove($x, $y, $screen=Default)
 	If WinActive($WINTITLE) Then MouseMove(ComputeX($x, $screen), ComputeY($y, $screen))
 EndFunc
 Func SleepCheck($sleep)
-	If WinActive($winHandle) Then Sleep($sleep)
+	If WinActive($WINTITLE) Then Sleep($sleep)
 EndFunc
 
 Func ComputeX($percent, $screen=Default)
@@ -161,6 +161,7 @@ Func GetBoxedScreen($screen, $ratio)
 
 	Return $corrected
 EndFunc
+
 
 
 
