@@ -1,25 +1,28 @@
 #include <AutoItConstants.au3>
-;$MOUSE_CLICK_LEFT = "left"
-;$WIN_STATE_MAXIMIZED = 32
-;$OPT_MATCHEXACT = 3
+;global $MOUSE_CLICK_LEFT = "left"
+;global $WIN_STATE_MAXIMIZED = 32
+;global $OPT_MATCHEXACT = 3
 AutoItSetOption("WinTitleMatchMode",$OPT_MATCHEXACT)
+global $PRECISION = 1000 ; Pos arguments are in 1/1000 of window size
+global $LOADTIME = 10 ; Loads in 10s on my machine, can take longer to other people
 
-$PRECISION = 1000 ; Pos arguments are in 1/1000 of window size
+global $WINTITLE = "Buckshot Roulette"
+global $STEAMID = "2835570"
+global $FIXEDRATIO = 16/9
 
-$WINTITLE = "Buckshot Roulette"
-$STEAMID = "2835570"
-$FIXEDRATIO = 16/9
+; Trigger endless mode?
+global $pills = True
+; Sound effect when taking control of inputs?
+global $signal = True
 
-$LOADTIME = 10 ; Loads in 10s on my machine, can take longer to other people
-$pills = True ; Trigger endless mode?
+global $winHandle = SteamCheck($WINTITLE&".exe", $WINTITLE, $STEAMID, 10000)
 
-$winHandle = SteamCheck("Buckshot Roulette.exe", $WINTITLE, $STEAMID, 10000)
-
+global $KEY = "{Tab}"
 While WinWait($WINTITLE, "", 1)
-	If WinActive($WINTITLE) Then
-		HotKeySet("{Enter}", "SetupGame")
+	If WinActive($WINTITLE) = $winHandle Then
+		HotKeySet($KEY, "SetupGame")
 	Else
-		HotKeySet("{Enter}")
+		HotKeySet($KEY)
 	EndIf
 	Sleep(1000)
 WEnd
@@ -31,7 +34,8 @@ Exit(0)
 ;EndFunc
 
 Func SetupGame()
-	If Not WinActive($WINTITLE) Then Return 0
+	If WinActive($WINTITLE) <> $winHandle Then Return 0
+	If $signal Then Beep()
 	
 	If Not BitAND(WinGetState($winHandle), $WIN_STATE_MAXIMIZED) Then
 		$stateWait = 2000
@@ -49,6 +53,8 @@ Func SetupGame()
 	RatioMove(607, 456)
 	SleepCheck(3000)
 	EnterName(607, 456)
+	
+	If $signal Then Beep()
 EndFunc
 
 Func TriggerEndless($x, $y)
@@ -74,7 +80,7 @@ EndFunc
 Func VolumeMouse($volTimer, $sleep, $x, $y, $click=Default)
 	Sleep($volTimer)
 	; WARNING: Will *restore* sound temporarily if the settings were naturally on mute
-	If WinActive($WINTITLE) Then Send("{VOLUME_MUTE}")
+	If WinActive($WINTITLE) = $winHandle Then Send("{VOLUME_MUTE}")
 	AnimMouse($sleep-$volTimer, $x, $y, $click)
 EndFunc
 ; High-speed mouse movement doesn't seem to work well in UIs with custom pointer
@@ -89,15 +95,18 @@ EndFunc
 ; Instead of hardcoded coords, all mouse interations will use a % from the window size
 Func RatioClick($x, $y, $click=Default, $screen=Default)
 	If $click = Default Then $click = $MOUSE_CLICK_LEFT
-	If WinActive($WINTITLE) Then MouseClick($click, ComputeX($x, $screen), ComputeY($y, $screen))
+	If $screen = Default Then $screen = GetBoxedScreen(WinGetPos($WINTITLE), $FIXEDRATIO)
+	If WinActive($WINTITLE) = $winHandle Then MouseClick($click, ComputeX($x, $screen), ComputeY($y, $screen))
 EndFunc
 Func RatioMove($x, $y, $screen=Default)
-	If WinActive($WINTITLE) Then MouseMove(ComputeX($x, $screen), ComputeY($y, $screen))
+	If $screen = Default Then $screen = GetBoxedScreen(WinGetPos($WINTITLE), $FIXEDRATIO)
+	If WinActive($WINTITLE) = $winHandle Then MouseMove(ComputeX($x, $screen), ComputeY($y, $screen))
 EndFunc
 Func SleepCheck($sleep)
-	If WinActive($WINTITLE) Then Sleep($sleep)
+	If WinActive($WINTITLE) = $winHandle Then Sleep($sleep)
 EndFunc
 
+; Convert % into pixel coordinates
 Func ComputeX($percent, $screen=Default)
     Return ComputePos($percent, 0, $screen)
 EndFunc
@@ -161,7 +170,3 @@ Func GetBoxedScreen($screen, $ratio)
 
 	Return $corrected
 EndFunc
-
-
-
-
