@@ -14,6 +14,8 @@ global $FIXEDRATIO = 16/9
 global $pills = True
 ; Sound effect when taking control of inputs?
 global $signal = True
+; Invert volume on expectedly loud cutscenes
+global $mute = True
 
 global $winHandle = SteamCheck($WINTITLE&".exe", $WINTITLE, $STEAMID, 10000)
 
@@ -80,7 +82,7 @@ EndFunc
 Func VolumeMouse($volTimer, $sleep, $x, $y, $click=Default)
 	Sleep($volTimer)
 	; WARNING: Will *restore* sound temporarily if the settings were naturally on mute
-	If WinActive($WINTITLE) = $winHandle Then Send("{VOLUME_MUTE}")
+	If $mute And WinActive($WINTITLE) = $winHandle Then Send("{VOLUME_MUTE}")
 	AnimMouse($sleep-$volTimer, $x, $y, $click)
 EndFunc
 ; High-speed mouse movement doesn't seem to work well in UIs with custom pointer
