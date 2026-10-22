@@ -16,26 +16,15 @@
 	const doc = global.document;
     const href = global.location.href;
 
-
-    // Utils method
-    const _eleQuerySelectorAll = Element.prototype.querySelectorAll;
-    const _docQuerySelectorAll = Document.prototype.querySelectorAll;
-	const _querySelectorSafe = function(element, selector) {
-      const result = (element instanceof Document ? _docQuerySelectorAll : _eleQuerySelectorAll).call(element, selector);
-      if (result.length == 1) return result.item(0);
-      if (result.length > 1) {
-        global.console.warn("Several matches found for querySelector! Discarding...");
-        global.console.warn(result);
-      }
-      return null;
-    };
-  
     const _URLcontainsParam = (url, ...names) => {
         let params = "";
         for (const name of names) {
             params += "|" + name;
         }
         let result = url.match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
+        console.log(url);
+        console.log('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
+        console.log(result);
         if (result) result[2] = decodeURI(result[2]);
         return result;
     };
@@ -50,7 +39,8 @@
     }
 
     // Weirdly, the loading of the TrainPlus form happens too late... even waiting for body mutations doesn't work.
-    if (href.match("trainplus/itinerary")) {
+    const TRAINPLUS = "trainplus/itinerary";
+    if (href.match(TRAINPLUS)) {
         setTimeout(()=>{
             let target = doc.querySelector("#_r_f_");
             if (!target) return;
@@ -65,6 +55,19 @@
 
     const target = doc.querySelector(".sidebar-panel-wrapper");
     if (!target) return;
+
+    // Utils method
+    const _eleQuerySelectorAll = Element.prototype.querySelectorAll;
+    const _docQuerySelectorAll = Document.prototype.querySelectorAll;
+	const _querySelectorSafe = function(element, selector) {
+      const result = (element instanceof Document ? _docQuerySelectorAll : _eleQuerySelectorAll).call(element, selector);
+      if (result.length == 1) return result.item(0);
+      if (result.length > 1) {
+        global.console.warn("Several matches found for querySelector! Discarding...");
+        global.console.warn(result);
+      }
+      return null;
+    };
 
 	const _cleanText = node=>node.textContent.trim()/*.toLowerCase()*/;
 
@@ -104,7 +107,7 @@
             let action;
 
             action = linkTemplate.cloneNode(true);
-            action.setAttribute("href","https://simulator.belgiantrain.be"+LANG+"trainplus/itinerary?segment=ADULT"+weekendParam+originParam+destinationParam);
+            action.setAttribute("href","https://simulator.belgiantrain.be"+LANG+TRAINPLUS+"?segment=ADULT"+weekendParam+originParam+destinationParam);
             action.append('Train+');
             container.appendChild(action);
 
