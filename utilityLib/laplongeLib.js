@@ -94,7 +94,7 @@ global.laplongeUtils = {
         observer.observe(win.document || win.document.body, { childList: true, subtree: true });
         // Make the callback believes it's an update
         run([{addedNodes:true}]);
-	return observer;
+	    return observer;
     },
 
     // By default, querySelector returns the first element in case of multiple matches
@@ -116,7 +116,9 @@ global.laplongeUtils = {
       for (const name of names) {
         params += "|" + name;
       }
-      return url.match('(?:[?&#]('+params.substring(1)+')=)((?:[^&]+|$))');
+      let result = url.match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
+      if (result) result[2] = decodeURI(result[2]);
+      return result;
     },
 
     getJSON: (url, callback) => {
