@@ -21,11 +21,11 @@
         for (const name of names) {
             params += "|" + name;
         }
-        let result = url.match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
+        let result = decodeURI(url).match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
         console.log(url);
         console.log('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
         console.log(result);
-        if (result) result[2] = decodeURI(result[2]);
+        if (result) result[2] = result[2];
         return result;
     };
 
@@ -86,10 +86,10 @@
         isoParam = (dateDiff < -1 || dateDiff > 2) ? "" : "&date="+isoParam;
 
         let weekendParam = searchDate.getDay();
-        weekendParam = "&trajects[0][travelPeriod]="+((weekendParam==0||weekendParam==6)?"WEEKEND":"OFFPEAK");
+        weekendParam = encodeURI("&trajects[0][travelPeriod]=")+((weekendParam==0||weekendParam==6)?"WEEKEND":"OFFPEAK");
 
-        const originParam = "&trajects[0][nameFrom]="+encodeURI(doc.querySelector("#Origin_Reference-input").value);
-        const destinationParam = "&trajects[0][nameTo]="+encodeURI(doc.querySelector("#Destination_Reference-input").value);
+        const originParam = encodeURI("&trajects[0][nameFrom]="+doc.querySelector("#Origin_Reference-input").value);
+        const destinationParam = encodeURI("&trajects[0][nameTo]="+doc.querySelector("#Destination_Reference-input").value);
 
         const containerTemplate = doc.createElement("span");
 		const linkTemplate = doc.createElement("a");
