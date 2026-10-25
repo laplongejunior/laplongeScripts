@@ -112,13 +112,13 @@ global.laplongeUtils = {
     },
 
     URLcontainsParam: (url, ...names) => {
-      let params = "";
-      for (const name of names) {
-        params += "|" + name;
-      }
-      let result = url.match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
-      if (result) result[2] = decodeURI(result[2]);
-      return result;
+        let params = "";
+        for (const name of names) {
+            params += "|" + name;
+        }
+        let result = decodeURI(url).match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
+        if (result) result[2] = result[2];
+        return result;
     },
 
     getJSON: (url, callback) => {
