@@ -22,9 +22,6 @@
             params += "|" + name;
         }
         let result = decodeURI(url).match('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
-        console.log(url);
-        console.log('(?:[?&#]('+RegExp.escape(params.substring(1))+')=)((?:[^&]+|$))');
-        console.log(result);
         if (result) result[2] = result[2];
         return result;
     };
